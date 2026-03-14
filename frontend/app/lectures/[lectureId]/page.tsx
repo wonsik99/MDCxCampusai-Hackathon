@@ -13,7 +13,8 @@ export default function LectureDetailPage() {
   const searchParams = useSearchParams();
   const { selectedUser } = useUserContext();
   const [lecture, setLecture] = useState<LectureDetail | null>(null);
-  const [generationResult, setGenerationResult] = useState<QuizGenerationResponse | null>(null);
+  const [generationResult, setGenerationResult] =
+    useState<QuizGenerationResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
@@ -30,7 +31,11 @@ export default function LectureDetailPage() {
         setLecture(data);
         setError(null);
       })
-      .catch((caught) => setError(caught instanceof Error ? caught.message : "Failed to load lecture."))
+      .catch((caught) =>
+        setError(
+          caught instanceof Error ? caught.message : "Failed to load lecture.",
+        ),
+      )
       .finally(() => setLoading(false));
   }, [params.lectureId, selectedUser]);
 
@@ -45,14 +50,21 @@ export default function LectureDetailPage() {
       setLecture(refreshed);
       setError(null);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Quiz generation failed.");
+      setError(
+        caught instanceof Error ? caught.message : "Quiz generation failed.",
+      );
     } finally {
       setWorking(false);
     }
   }
 
   useEffect(() => {
-    if (!selectedUser || !lecture || working || autoGenerationTriggeredRef.current) {
+    if (
+      !selectedUser ||
+      !lecture ||
+      working ||
+      autoGenerationTriggeredRef.current
+    ) {
       return;
     }
     if (searchParams.get("autogen") !== "1") {
@@ -77,25 +89,44 @@ export default function LectureDetailPage() {
       const session = await startQuizSession(selectedUser.id, lecture.id);
       router.push(`/quiz/${session.session_id}`);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to start quiz.");
+      setError(
+        caught instanceof Error ? caught.message : "Unable to start quiz.",
+      );
+      setWorking(false);
+    }
+  }
+
+  async function handleStartGame() {
+    if (!selectedUser || !lecture) return;
+    setWorking(true);
+    setWorkingLabel("Opening game mode...");
+    try {
+      router.push(`/game/${lecture.id}`);
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Unable to start game.",
+      );
       setWorking(false);
     }
   }
 
   if (loading) {
-    return <div className="text-sm text-[var(--text-muted)]">Loading lecture...</div>;
+    return (
+      <div className="text-sm text-[var(--text-muted)]">Loading lecture...</div>
+    );
   }
 
   if (!lecture) {
-    return <div className="text-sm text-[var(--text-muted)]">Lecture not found.</div>;
+    return (
+      <div className="text-sm text-[var(--text-muted)]">Lecture not found.</div>
+    );
   }
 
   const workflowSteps = [
     { label: "Upload", done: true },
-    { label: "Generate quiz", done: lecture.quiz_generated },
-    { label: "Start session", done: false },
-    { label: "Solve quiz", done: false },
-    { label: "Review recommendations", done: false }
+    { label: "Generate Flashcards", done: lecture.quiz_generated },
+    { label: "Quiz or Game", done: false },
+    { label: "Review recommendations", done: false },
   ];
 
   return (
@@ -112,11 +143,15 @@ export default function LectureDetailPage() {
         <div className="plain-strip mt-8 grid gap-0 md:grid-cols-3">
           <div className="py-4 md:py-5 md:pr-6">
             <p className="eyebrow">Concepts</p>
-            <p className="mt-2 text-[2rem] font-medium tracking-[-0.08em] text-[var(--text-strong)]">{lecture.concepts.length}</p>
+            <p className="mt-2 text-[2rem] font-medium tracking-[-0.08em] text-[var(--text-strong)]">
+              {lecture.concepts.length}
+            </p>
           </div>
           <div className="py-4 md:border-l md:border-white/10 md:px-6 md:py-5">
             <p className="eyebrow">Questions</p>
-            <p className="mt-2 text-[2rem] font-medium tracking-[-0.08em] text-[var(--text-strong)]">{lecture.question_count}</p>
+            <p className="mt-2 text-[2rem] font-medium tracking-[-0.08em] text-[var(--text-strong)]">
+              {lecture.question_count}
+            </p>
           </div>
           <div className="py-4 md:border-l md:border-white/10 md:pl-6 md:py-5">
             <p className="eyebrow">Provider</p>
@@ -131,9 +166,17 @@ export default function LectureDetailPage() {
         <p className="eyebrow">Workflow</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
           {workflowSteps.map((step, index) => {
-            const isCurrent = index === 1 ? !lecture.quiz_generated : index === 2 ? lecture.quiz_generated : false;
+            const isCurrent =
+              index === 1
+                ? !lecture.quiz_generated
+                : index === 2
+                  ? lecture.quiz_generated
+                  : false;
             return (
-              <div className={`list-row flex items-center gap-3 ${isCurrent ? "border-[var(--border-strong)]" : ""}`} key={step.label}>
+              <div
+                className={`list-row flex items-center gap-3 ${isCurrent ? "border-[var(--border-strong)]" : ""}`}
+                key={step.label}
+              >
                 <span
                   className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${
                     step.done
@@ -145,7 +188,9 @@ export default function LectureDetailPage() {
                 >
                   {step.done ? "✓" : index + 1}
                 </span>
-                <span className="text-xs tracking-[0.07em] text-[var(--text-muted)] uppercase">{step.label}</span>
+                <span className="text-xs tracking-[0.07em] text-[var(--text-muted)] uppercase">
+                  {step.label}
+                </span>
               </div>
             );
           })}
@@ -154,7 +199,9 @@ export default function LectureDetailPage() {
 
       <section className="plain-section">
         <p className="eyebrow">Summary</p>
-        <p className="plain-note mt-4 max-w-4xl">{lecture.summary_block.summary}</p>
+        <p className="plain-note mt-4 max-w-4xl">
+          {lecture.summary_block.summary}
+        </p>
       </section>
 
       <section className="plain-section">
@@ -170,8 +217,10 @@ export default function LectureDetailPage() {
                 <span className="loading-inline-spinner" />
                 Generating...
               </span>
+            ) : lecture.quiz_generated ? (
+              "Regenerate content"
             ) : (
-              "Generate quiz"
+              "Generate learning content"
             )}
           </button>
           <button
@@ -191,18 +240,17 @@ export default function LectureDetailPage() {
           </button>
         </div>
         {working ? <p className="loading-inline mt-3">{workingLabel}</p> : null}
-        {lecture.quiz_generated ? (
-          <p className="plain-note mt-3">Quiz is locked once generated. Start a session to continue.</p>
-        ) : (
-          <p className="plain-note mt-3">Generate quiz first, then start a session immediately.</p>
-        )}
+        {!lecture.quiz_generated ? (
+          <p className="plain-note mt-3">
+            Generate quiz first, then start a session immediately.
+          </p>
+        ) : null}
 
         {generationResult ? (
           <p className="plain-note mt-4">
             {generationResult.question_count} questions ready.
           </p>
         ) : null}
-        {error ? <p className="mt-4 text-sm text-red-300">{error}</p> : null}
       </section>
 
       <section className="grid gap-10 xl:grid-cols-[minmax(0,1fr),320px]">
@@ -210,13 +258,22 @@ export default function LectureDetailPage() {
           <p className="eyebrow">Concepts</p>
           <div className="mt-6 divide-y divide-white/10">
             {lecture.concepts.map((concept, index) => (
-              <div className="grid gap-4 py-4 first:pt-0 last:pb-0 md:grid-cols-[40px,1fr]" key={concept.id}>
-                <p className="text-[1.1rem] font-medium tracking-[-0.05em] text-[var(--text-strong)]">{index + 1}</p>
+              <div
+                className="grid gap-4 py-4 first:pt-0 last:pb-0 md:grid-cols-[40px,1fr]"
+                key={concept.id}
+              >
+                <p className="text-[1.1rem] font-medium tracking-[-0.05em] text-[var(--text-strong)]">
+                  {index + 1}
+                </p>
                 <div>
                   <div className="flex flex-wrap items-center gap-3">
-                    <h3 className="text-[1.05rem] font-medium tracking-[-0.04em] text-[var(--text-strong)]">{concept.name}</h3>
+                    <h3 className="text-[1.05rem] font-medium tracking-[-0.04em] text-[var(--text-strong)]">
+                      {concept.name}
+                    </h3>
                     {concept.is_inferred ? (
-                      <span className="text-[0.72rem] uppercase tracking-[0.12em] text-[var(--text-muted)]">Prerequisite</span>
+                      <span className="text-[0.72rem] uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                        Prerequisite
+                      </span>
                     ) : null}
                   </div>
                   <p className="plain-note mt-2">{concept.description}</p>
@@ -230,7 +287,10 @@ export default function LectureDetailPage() {
           <p className="eyebrow">Takeaways</p>
           <div className="mt-6 divide-y divide-white/10">
             {lecture.summary_block.key_takeaways.map((item) => (
-              <p className="py-3 text-sm leading-7 text-[var(--text-muted)] first:pt-0 last:pb-0" key={item}>
+              <p
+                className="py-3 text-sm leading-7 text-[var(--text-muted)] first:pt-0 last:pb-0"
+                key={item}
+              >
                 {item}
               </p>
             ))}
