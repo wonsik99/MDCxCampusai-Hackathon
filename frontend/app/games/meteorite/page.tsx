@@ -14,7 +14,7 @@ export default function MeteoriteGamePage() {
     const container = document.getElementById("unity-container");
     if (container) {
       const iframe = document.createElement("iframe");
-      iframe.src = `/unity/meteorite/index.html?lectureId=${lectureId}`;
+      iframe.src = `/unity/index.html?lectureId=${lectureId}`;
       iframe.width = "960";
       iframe.height = "600";
       iframe.style.border = "none";
