@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+import random
 from uuid import UUID
 
 from sqlalchemy import delete, select
@@ -147,8 +148,9 @@ class LectureService:
         )
 
         concepts_by_slug = {concept.slug: concept for concept in lecture.concepts}
+        target_correct_ids = _build_balanced_correct_ids(len(generated.questions))
         concept_counts: dict[str, int] = defaultdict(int)
-        for question_payload in generated.questions:
+        for question_index, question_payload in enumerate(generated.questions):
             concept = concepts_by_slug.get(question_payload.concept_slug)
             if not concept:
                 raise AppError(
@@ -156,7 +158,8 @@ class LectureService:
                     status_code=502,
                     error_code="invalid_ai_output",
                 )
-            explanation_keys = set(question_payload.wrong_answer_explanations)
+            explanations_dict = question_payload.wrong_answer_explanations_as_dict()
+            explanation_keys = set(explanations_dict)
             valid_wrong_choices = {choice.choice_id for choice in question_payload.choices if choice.choice_id != question_payload.correct_choice_id}
             if explanation_keys != valid_wrong_choices:
                 raise AppError(
@@ -164,14 +167,20 @@ class LectureService:
                     status_code=502,
                     error_code="invalid_ai_output",
                 )
+            remapped_choices, remapped_correct_choice_id, remapped_explanations = _remap_choices_for_answer_distribution(
+                choices=[choice.model_dump() for choice in question_payload.choices],
+                correct_choice_id=question_payload.correct_choice_id,
+                wrong_answer_explanations=explanations_dict,
+                desired_correct_id=target_correct_ids[question_index],
+            )
             self.session.add(
                 Question(
                     lecture_id=lecture.id,
                     concept_id=concept.id,
                     prompt=question_payload.prompt,
-                    choices=[choice.model_dump() for choice in question_payload.choices],
-                    correct_choice_id=question_payload.correct_choice_id,
-                    wrong_answer_explanations=question_payload.wrong_answer_explanations,
+                    choices=remapped_choices,
+                    correct_choice_id=remapped_correct_choice_id,
+                    wrong_answer_explanations=remapped_explanations,
                 )
             )
             concept_counts[concept.slug] += 1
@@ -235,3 +244,47 @@ class LectureService:
         for concept_seed in enriched:
             if concept_seed.prerequisite_slug and concept_seed.slug in created:
                 created[concept_seed.slug].prerequisite_concept_id = created[concept_seed.prerequisite_slug].id
+
+
+def _build_balanced_correct_ids(question_count: int) -> list[str]:
+    # Ensure answer positions are balanced across A/B/C/D for each generated quiz set.
+    base_choice_ids = ["A", "B", "C", "D"]
+    repeated = (base_choice_ids * ((question_count + 3) // 4))[:question_count]
+    random.shuffle(repeated)
+    return repeated
+
+
+def _remap_choices_for_answer_distribution(
+    *,
+    choices: list[dict],
+    correct_choice_id: str,
+    wrong_answer_explanations: dict[str, str],
+    desired_correct_id: str,
+) -> tuple[list[dict], str, dict[str, str]]:
+    ordered_choice_ids = ["A", "B", "C", "D"]
+    choices_by_old_id = {item["choice_id"]: item["text"] for item in choices}
+    if correct_choice_id not in choices_by_old_id:
+        raise AppError(
+            "Generated correct choice ID was not present in the choice list.",
+            status_code=502,
+            error_code="invalid_ai_output",
+        )
+
+    wrong_old_ids = [choice_id for choice_id in ordered_choice_ids if choice_id != correct_choice_id]
+    random.shuffle(wrong_old_ids)
+    target_wrong_ids = [choice_id for choice_id in ordered_choice_ids if choice_id != desired_correct_id]
+
+    old_to_new: dict[str, str] = {correct_choice_id: desired_correct_id}
+    for old_id, new_id in zip(wrong_old_ids, target_wrong_ids):
+        old_to_new[old_id] = new_id
+    new_to_old = {new_id: old_id for old_id, new_id in old_to_new.items()}
+
+    remapped_choices = [
+        {"choice_id": new_id, "text": choices_by_old_id[new_to_old[new_id]]}
+        for new_id in ordered_choice_ids
+    ]
+    remapped_explanations = {
+        old_to_new[old_id]: explanation
+        for old_id, explanation in wrong_answer_explanations.items()
+    }
+    return remapped_choices, desired_correct_id, remapped_explanations

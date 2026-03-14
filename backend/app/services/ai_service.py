@@ -1,4 +1,4 @@
-"""AI service wrapper that switches between OpenAI and local fallback behavior."""
+"""AI service wrapper that delegates to OpenAI. Requires a valid API key."""
 
 from __future__ import annotations
 
@@ -12,28 +12,25 @@ from app.schemas.ai import (
     QuizGenerationOutput,
 )
 from app.schemas.common import AIUsageMetadata
-from app.services.ai_provider import BaseAIProvider, FallbackAIProvider, OpenAIProvider
+from app.services.ai_provider import OpenAIProvider
 
 
 class AIService:
     def __init__(self) -> None:
         settings = get_settings()
-        self.fallback_provider = FallbackAIProvider()
-        self.primary_provider: BaseAIProvider = (
-            OpenAIProvider(settings) if settings.openai_api_key else self.fallback_provider
-        )
-        self._last_provider_name = self.primary_provider.provider_name
-        self._last_used_fallback = self.primary_provider.used_fallback
+        if not settings.openai_api_key:
+            raise AIProviderError("OPENAI_API_KEY is required. Set it in .env to use the application.")
+        self._provider = OpenAIProvider(settings)
 
     @property
     def metadata(self) -> AIUsageMetadata:
-        return AIUsageMetadata(provider=self._last_provider_name, used_fallback=self._last_used_fallback)
+        return AIUsageMetadata(provider=self._provider.provider_name, used_fallback=False)
 
     def summarize_lecture(self, text: str) -> LectureSummaryOutput:
-        return LectureSummaryOutput.model_validate(self._run_with_fallback("summarize_lecture", text))
+        return LectureSummaryOutput.model_validate(self._provider.summarize_lecture(text))
 
     def extract_concepts(self, text: str) -> ConceptExtractionOutput:
-        return ConceptExtractionOutput.model_validate(self._run_with_fallback("extract_concepts", text))
+        return ConceptExtractionOutput.model_validate(self._provider.extract_concepts(text))
 
     def generate_quiz_from_lecture(
         self,
@@ -42,7 +39,7 @@ class AIService:
         questions_per_concept: int,
     ) -> QuizGenerationOutput:
         return QuizGenerationOutput.model_validate(
-            self._run_with_fallback("generate_quiz_from_lecture", text, concepts, questions_per_concept)
+            self._provider.generate_quiz_from_lecture(text, concepts, questions_per_concept)
         )
 
     def explain_wrong_answer(
@@ -54,14 +51,7 @@ class AIService:
         lecture_summary: str,
     ) -> WrongAnswerExplanationOutput:
         return WrongAnswerExplanationOutput.model_validate(
-            self._run_with_fallback(
-                "explain_wrong_answer",
-                question,
-                selected_answer,
-                correct_answer,
-                concept,
-                lecture_summary,
-            )
+            self._provider.explain_wrong_answer(question, selected_answer, correct_answer, concept, lecture_summary)
         )
 
     def generate_recommendation(
@@ -71,26 +61,5 @@ class AIService:
         mastery_data: list[dict],
     ) -> RecommendationOutput:
         return RecommendationOutput.model_validate(
-            self._run_with_fallback(
-                "generate_recommendation",
-                weak_concepts,
-                prerequisite_chain,
-                mastery_data,
-            )
+            self._provider.generate_recommendation(weak_concepts, prerequisite_chain, mastery_data)
         )
-
-    def _run_with_fallback(self, method_name: str, *args):
-        method = getattr(self.primary_provider, method_name)
-        try:
-            result = method(*args)
-            self._last_provider_name = self.primary_provider.provider_name
-            self._last_used_fallback = self.primary_provider.used_fallback
-            return result
-        except AIProviderError:
-            if self.primary_provider is self.fallback_provider:
-                raise
-            fallback_method = getattr(self.fallback_provider, method_name)
-            result = fallback_method(*args)
-            self._last_provider_name = self.fallback_provider.provider_name
-            self._last_used_fallback = True
-            return result

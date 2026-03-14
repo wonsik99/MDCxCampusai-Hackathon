@@ -1,8 +1,7 @@
-"""OpenAI and fallback providers for structured educational content generation."""
+"""OpenAI provider for structured educational content generation."""
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 import logging
 
 from openai import OpenAI
@@ -16,56 +15,12 @@ from app.schemas.ai import (
     WrongAnswerExplanationOutput,
     QuizGenerationOutput,
 )
-from app.utils.text import extract_keyword_concepts, summarize_text_fallback
 
 logger = logging.getLogger(__name__)
 
 
-class BaseAIProvider(ABC):
-    provider_name: str
-    used_fallback: bool
-
-    @abstractmethod
-    def summarize_lecture(self, text: str) -> LectureSummaryOutput:
-        raise NotImplementedError
-
-    @abstractmethod
-    def extract_concepts(self, text: str) -> ConceptExtractionOutput:
-        raise NotImplementedError
-
-    @abstractmethod
-    def generate_quiz_from_lecture(
-        self,
-        text: str,
-        concepts: list[dict[str, str]],
-        questions_per_concept: int,
-    ) -> QuizGenerationOutput:
-        raise NotImplementedError
-
-    @abstractmethod
-    def explain_wrong_answer(
-        self,
-        question: str,
-        selected_answer: str,
-        correct_answer: str,
-        concept: str,
-        lecture_summary: str,
-    ) -> WrongAnswerExplanationOutput:
-        raise NotImplementedError
-
-    @abstractmethod
-    def generate_recommendation(
-        self,
-        weak_concepts: list[dict],
-        prerequisite_chain: list[list[str]],
-        mastery_data: list[dict],
-    ) -> RecommendationOutput:
-        raise NotImplementedError
-
-
-class OpenAIProvider(BaseAIProvider):
+class OpenAIProvider:
     provider_name = "openai"
-    used_fallback = False
 
     def __init__(self, settings: Settings) -> None:
         if not settings.openai_api_key:
@@ -96,18 +51,28 @@ class OpenAIProvider(BaseAIProvider):
         compact_text = _trim_text_for_generation(text, max_chars=18000)
         concept_list = "\n".join(f"- {concept['name']} ({concept['slug']}): {concept['description']}" for concept in concepts)
         prompt = (
-            "You are generating multiple-choice study questions from lecture notes.\n"
-            "Rules:\n"
+            "You are an expert educational assessment designer creating diagnostic quiz questions.\n\n"
+            "TASK: Generate high-quality multiple-choice questions that test genuine understanding, "
+            "not surface-level recall.\n\n"
+            "RULES:\n"
             f"- Generate exactly {questions_per_concept} questions per concept.\n"
-            "- Each question must belong to exactly one concept_slug from the provided concept list.\n"
-            "- Each question must have exactly 4 answer choices.\n"
-            "- Include wrong-answer explanations for the 3 incorrect choices only.\n"
-            "- Make distractors plausible for struggling learners.\n\n"
-            f"Concept list:\n{concept_list}\n\n"
-            f"Lecture text:\n{compact_text}"
+            "- Each question must belong to exactly one concept_slug from the concept list below.\n"
+            "- Each question must have exactly 4 answer choices (A, B, C, D).\n"
+            "- CRITICAL: Distribute the correct answer position roughly equally across A, B, C, and D. "
+            "Each position must be used at least once. Do NOT cluster correct answers in A or B.\n"
+            "- Distractors must be plausible misconceptions that a struggling learner might genuinely choose. "
+            "Avoid obviously wrong options.\n"
+            "- For each incorrect choice, provide a 1-2 sentence explanation that helps the student "
+            "understand why it is wrong and points them toward the correct reasoning.\n"
+            "- Vary question styles: include application questions, comparison questions, and "
+            "'which of the following is true/false' questions. Avoid generic 'what is X?' patterns.\n"
+            "- Ground every question in specific content from the lecture text.\n\n"
+            f"CONCEPT LIST:\n{concept_list}\n\n"
+            f"LECTURE TEXT:\n{compact_text}"
         )
         return self._parse_response(
-            "Generate quiz questions as structured JSON.",
+            "Generate quiz questions as structured JSON. Each wrong_answer_explanations entry must have "
+            "a choice_id field and an explanation field.",
             prompt,
             QuizGenerationOutput,
             max_output_tokens=5000,
@@ -166,98 +131,6 @@ class OpenAIProvider(BaseAIProvider):
                 "Failed to generate structured OpenAI output.",
                 extra={"provider_message": f"{exc.__class__.__name__}: {exc}"},
             ) from exc
-
-
-class FallbackAIProvider(BaseAIProvider):
-    provider_name = "fallback"
-    used_fallback = True
-
-    def summarize_lecture(self, text: str) -> LectureSummaryOutput:
-        summary = summarize_text_fallback(text)
-        takeaways = [segment.strip() for segment in summary.split(". ") if segment.strip()][:3]
-        if not takeaways:
-            takeaways = ["Review the lecture in smaller chunks and focus on the main definitions."]
-        return LectureSummaryOutput(summary=summary, key_takeaways=takeaways)
-
-    def extract_concepts(self, text: str) -> ConceptExtractionOutput:
-        return ConceptExtractionOutput(concepts=extract_keyword_concepts(text))
-
-    def generate_quiz_from_lecture(
-        self,
-        text: str,
-        concepts: list[dict[str, str]],
-        questions_per_concept: int,
-    ) -> QuizGenerationOutput:
-        questions = []
-        choice_ids = ["A", "B", "C", "D"]
-        concept_names = [concept["name"] for concept in concepts]
-        for concept in concepts:
-            for index in range(questions_per_concept):
-                correct_text = concept["description"] or f"The lecture's main idea about {concept['name']}."
-                distractors = [
-                    f"A detail about {name} without the main definition."
-                    for name in concept_names
-                    if name != concept["name"]
-                ][:3]
-                while len(distractors) < 3:
-                    distractors.append(f"A partially related fact that does not define {concept['name']}.")
-                choices = [correct_text, *distractors[:3]]
-                question_choices = [{"choice_id": choice_ids[i], "text": choices[i]} for i in range(4)]
-                questions.append(
-                    {
-                        "concept_slug": concept["slug"],
-                        "prompt": f"Question {index + 1}: Which option best describes {concept['name']} in this lecture?",
-                        "choices": question_choices,
-                        "correct_choice_id": "A",
-                        "wrong_answer_explanations": {
-                            "B": f"This option mentions a nearby idea, but it misses the core meaning of {concept['name']}.",
-                            "C": f"This distractor sounds plausible, but the lecture uses {concept['name']} differently.",
-                            "D": f"This answer is too vague to explain {concept['name']} correctly.",
-                        },
-                    }
-                )
-        return QuizGenerationOutput.model_validate({"questions": questions})
-
-    def explain_wrong_answer(
-        self,
-        question: str,
-        selected_answer: str,
-        correct_answer: str,
-        concept: str,
-        lecture_summary: str,
-    ) -> WrongAnswerExplanationOutput:
-        return WrongAnswerExplanationOutput(
-            explanation=(
-                f"For {concept}, the stronger answer is '{correct_answer}' because it matches the lecture summary: "
-                f"{lecture_summary[:160]}. Your selected answer, '{selected_answer}', leaves out the central idea."
-            )
-        )
-
-    def generate_recommendation(
-        self,
-        weak_concepts: list[dict],
-        prerequisite_chain: list[list[str]],
-        mastery_data: list[dict],
-    ) -> RecommendationOutput:
-        chain_lookup = {chain[-1]: chain for chain in prerequisite_chain if chain}
-        mastery_lookup = {item["concept_slug"]: item for item in mastery_data}
-        recommendations = []
-        for concept in weak_concepts:
-            slug = concept["concept_slug"]
-            chain = " -> ".join(chain_lookup.get(slug, [slug]))
-            mastery = mastery_lookup.get(slug, {})
-            score = mastery.get("mastery_score", 0.0)
-            recommendations.append(
-                {
-                    "concept_slug": slug,
-                    "title": f"Rebuild {concept['concept_name']}",
-                    "message": (
-                        f"Study this concept next because it sits in the chain {chain}. "
-                        f"Current mastery is {score:.0%}; revisit definitions and one worked example before retrying."
-                    ),
-                }
-            )
-        return RecommendationOutput.model_validate({"recommendations": recommendations})
 
 
 def _trim_text_for_generation(text: str, max_chars: int) -> str:

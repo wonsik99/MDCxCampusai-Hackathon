@@ -26,12 +26,17 @@ class ConceptExtractionOutput(BaseModel):
         return value
 
 
+class WrongAnswerExplanation(BaseModel):
+    choice_id: str
+    explanation: str
+
+
 class QuizQuestionOutput(BaseModel):
     concept_slug: str
     prompt: str
     choices: list[ChoiceRead]
     correct_choice_id: str
-    wrong_answer_explanations: dict[str, str]
+    wrong_answer_explanations: list[WrongAnswerExplanation]
 
     @field_validator("choices")
     @classmethod
@@ -39,6 +44,9 @@ class QuizQuestionOutput(BaseModel):
         if len(value) != 4:
             raise ValueError("Each question must include exactly four choices.")
         return value
+
+    def wrong_answer_explanations_as_dict(self) -> dict[str, str]:
+        return {item.choice_id: item.explanation for item in self.wrong_answer_explanations}
 
 
 class QuizGenerationOutput(BaseModel):

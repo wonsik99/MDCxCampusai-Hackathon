@@ -94,8 +94,16 @@ export default function UploadPage() {
 
           <section className="plain-section">
             <button className="btn-primary w-full" disabled={submitting} type="submit">
-              {submitting ? "Analyzing..." : "Upload"}
+              {submitting ? (
+                <span className="inline-flex items-center gap-2">
+                  <span className="loading-inline-spinner" />
+                  Analyzing...
+                </span>
+              ) : (
+                "Upload"
+              )}
             </button>
+            {submitting ? <p className="loading-inline mt-3">Extracting text and generating summary...</p> : null}
             {error ? <p className="mt-4 text-sm text-red-300">{error}</p> : null}
           </section>
 
@@ -104,9 +112,14 @@ export default function UploadPage() {
             {result ? (
               <>
                 <h2 className="section-title mt-3">{result.lecture.title}</h2>
-                <Link className="editorial-link mt-6" href={`/lectures/${result.lecture.id}`}>
-                  Open lecture
-                </Link>
+                <div className="mt-6 space-y-3">
+                  <Link className="btn-primary w-full" href={`/lectures/${result.lecture.id}?autogen=1`}>
+                    Generate quiz now
+                  </Link>
+                  <Link className="editorial-link" href={`/lectures/${result.lecture.id}`}>
+                    Open lecture
+                  </Link>
+                </div>
               </>
             ) : (
               <p className="plain-note mt-4">Nothing uploaded yet.</p>

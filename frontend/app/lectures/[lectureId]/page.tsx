@@ -1,7 +1,7 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 import { useUserContext } from "@/components/user-context";
 import { generateQuiz, getLecture, startQuizSession } from "@/lib/api";
@@ -10,12 +10,15 @@ import { LectureDetail, QuizGenerationResponse } from "@/lib/types";
 export default function LectureDetailPage() {
   const params = useParams<{ lectureId: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { selectedUser } = useUserContext();
   const [lecture, setLecture] = useState<LectureDetail | null>(null);
   const [generationResult, setGenerationResult] = useState<QuizGenerationResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
+  const [workingLabel, setWorkingLabel] = useState("");
+  const autoGenerationTriggeredRef = useRef(false);
 
   useEffect(() => {
     if (!selectedUser) {
@@ -34,6 +37,7 @@ export default function LectureDetailPage() {
   async function handleGenerateQuiz() {
     if (!selectedUser || !lecture) return;
     setWorking(true);
+    setWorkingLabel("Generating quiz...");
     try {
       const response = await generateQuiz(selectedUser.id, lecture.id);
       setGenerationResult(response);
@@ -47,9 +51,28 @@ export default function LectureDetailPage() {
     }
   }
 
+  useEffect(() => {
+    if (!selectedUser || !lecture || working || autoGenerationTriggeredRef.current) {
+      return;
+    }
+    if (searchParams.get("autogen") !== "1") {
+      return;
+    }
+    if (lecture.quiz_generated) {
+      autoGenerationTriggeredRef.current = true;
+      router.replace(`/lectures/${lecture.id}`);
+      return;
+    }
+    autoGenerationTriggeredRef.current = true;
+    void handleGenerateQuiz().finally(() => {
+      router.replace(`/lectures/${lecture.id}`);
+    });
+  }, [lecture, router, searchParams, selectedUser, working]);
+
   async function handleStartQuiz() {
     if (!selectedUser || !lecture) return;
     setWorking(true);
+    setWorkingLabel("Starting session...");
     try {
       const session = await startQuizSession(selectedUser.id, lecture.id);
       router.push(`/quiz/${session.session_id}`);
@@ -66,6 +89,14 @@ export default function LectureDetailPage() {
   if (!lecture) {
     return <div className="text-sm text-[var(--text-muted)]">Lecture not found.</div>;
   }
+
+  const workflowSteps = [
+    { label: "Upload", done: true },
+    { label: "Generate quiz", done: lecture.quiz_generated },
+    { label: "Start session", done: false },
+    { label: "Solve quiz", done: false },
+    { label: "Review recommendations", done: false }
+  ];
 
   return (
     <div className="space-y-10">
@@ -97,6 +128,31 @@ export default function LectureDetailPage() {
       </section>
 
       <section className="plain-section">
+        <p className="eyebrow">Workflow</p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          {workflowSteps.map((step, index) => {
+            const isCurrent = index === 1 ? !lecture.quiz_generated : index === 2 ? lecture.quiz_generated : false;
+            return (
+              <div className={`list-row flex items-center gap-3 ${isCurrent ? "border-[var(--border-strong)]" : ""}`} key={step.label}>
+                <span
+                  className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${
+                    step.done
+                      ? "bg-[var(--accent-warm)] text-black"
+                      : isCurrent
+                        ? "bg-white/20 text-[var(--text-strong)]"
+                        : "bg-white/10 text-[var(--text-muted)]"
+                  }`}
+                >
+                  {step.done ? "✓" : index + 1}
+                </span>
+                <span className="text-xs tracking-[0.07em] text-[var(--text-muted)] uppercase">{step.label}</span>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="plain-section">
         <p className="eyebrow">Summary</p>
         <p className="plain-note mt-4 max-w-4xl">{lecture.summary_block.summary}</p>
       </section>
@@ -109,17 +165,37 @@ export default function LectureDetailPage() {
             onClick={handleGenerateQuiz}
             type="button"
           >
-            {lecture.quiz_generated ? "Regenerate quiz" : "Generate quiz"}
+            {working && workingLabel === "Generating quiz..." ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="loading-inline-spinner" />
+                Generating...
+              </span>
+            ) : lecture.quiz_generated ? (
+              "Regenerate quiz"
+            ) : (
+              "Generate quiz"
+            )}
           </button>
           <button
-            className="btn-secondary"
+            className={lecture.quiz_generated ? "btn-primary" : "btn-secondary"}
             disabled={working || !lecture.quiz_generated}
             onClick={handleStartQuiz}
             type="button"
           >
-            Start quiz
+            {working && workingLabel === "Starting session..." ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="loading-inline-spinner" />
+                Starting...
+              </span>
+            ) : (
+              "Start quiz"
+            )}
           </button>
         </div>
+        {working ? <p className="loading-inline mt-3">{workingLabel}</p> : null}
+        {!lecture.quiz_generated ? (
+          <p className="plain-note mt-3">Generate quiz first, then start a session immediately.</p>
+        ) : null}
 
         {generationResult ? (
           <p className="plain-note mt-4">

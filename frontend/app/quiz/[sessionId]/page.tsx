@@ -195,28 +195,52 @@ export default function QuizPage() {
         <div className="mt-8 space-y-3">
           {currentQuestion.choices.map((choice) => {
             const active = selectedChoiceId === choice.choice_id;
+            const isAnswered = Boolean(answerResult);
+            const isCorrectChoice = answerResult?.correct_choice_id === choice.choice_id;
+            const isWrongSelected = isAnswered && active && !isCorrectChoice;
             return (
               <button
                 className={`w-full border px-4 py-4 text-left transition ${
-                  active
+                  isCorrectChoice
+                    ? "border-emerald-300/70 bg-emerald-500/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                    : isWrongSelected
+                      ? "border-red-300/70 bg-red-500/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                      : active
                     ? "border-white/[0.24] bg-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl"
                     : "border-white/10 bg-white/[0.04] hover:border-white/[0.18] hover:bg-white/[0.06]"
                 }`}
+                disabled={isAnswered}
                 key={choice.choice_id}
-                onClick={() => setSelectedChoiceId(choice.choice_id)}
+                onClick={() => {
+                  if (!isAnswered) {
+                    setSelectedChoiceId(choice.choice_id);
+                  }
+                }}
                 type="button"
               >
                 <div className="flex items-start gap-4">
                   <span
                     className={`flex h-8 w-8 items-center justify-center border text-sm font-semibold ${
-                      active
+                      isCorrectChoice
+                        ? "border-emerald-300/70 bg-emerald-400/25 text-[var(--text-strong)]"
+                        : isWrongSelected
+                          ? "border-red-300/70 bg-red-400/20 text-[var(--text-strong)]"
+                          : active
                         ? "border-white/[0.24] bg-white/[0.16] text-[var(--text-strong)]"
                         : "border-white/10 bg-white/8 text-[var(--text-strong)]"
                     }`}
                   >
                     {choice.choice_id}
                   </span>
-                  <span className="text-sm leading-7 text-[var(--text-strong)]">{choice.text}</span>
+                  <div className="flex-1">
+                    <span className="text-sm leading-7 text-[var(--text-strong)]">{choice.text}</span>
+                    {isCorrectChoice ? (
+                      <p className="mt-1 text-xs uppercase tracking-[0.1em] text-emerald-200">Correct answer</p>
+                    ) : null}
+                    {isWrongSelected ? (
+                      <p className="mt-1 text-xs uppercase tracking-[0.1em] text-red-200">Your choice</p>
+                    ) : null}
+                  </div>
                 </div>
               </button>
             );

@@ -47,14 +47,11 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="mx-auto max-w-[1560px] px-4 xl:px-6">
           <div className="flex flex-wrap items-center gap-3 py-3 lg:flex-nowrap lg:justify-between">
             <div className="flex min-w-0 items-center gap-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center border border-white/20 bg-white/10 text-[0.75rem] font-semibold uppercase tracking-[0.16em] text-[var(--text-strong)] shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] backdrop-blur-xl">
-                SS
+              <div className="brand-mark" aria-hidden>
+                <span className="brand-mark-inner">S</span>
               </div>
               <div className="min-w-0">
                 <p className="eyebrow">StruggleSense</p>
-                <p className="mt-1 truncate text-[1rem] font-medium tracking-[-0.05em] text-[var(--text-strong)]">
-                  Learn where the struggle starts.
-                </p>
               </div>
             </div>
 
@@ -81,12 +78,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             </nav>
 
             <div className="ml-auto flex items-center gap-3 lg:ml-0">
-              <span className="badge hidden lg:inline-flex">Study system</span>
               <div className="hidden text-right lg:block">
                 <p className="eyebrow">Active learner</p>
-                <p className="mt-1 text-sm text-[var(--text-muted)]">
-                  {selectedUser?.name ?? "Select learner"}
-                </p>
               </div>
               <select
                 className="field-select w-[170px] min-w-0 !min-h-[44px] !px-3 !py-2 text-sm lg:w-[220px]"
