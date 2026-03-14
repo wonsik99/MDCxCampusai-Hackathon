@@ -208,7 +208,7 @@ export default function LectureDetailPage() {
         <div className="flex flex-wrap gap-3">
           <button
             className="btn-primary"
-            disabled={working || lecture.quiz_generated}
+            disabled={working}
             onClick={handleGenerateQuiz}
             type="button"
           >
@@ -223,26 +223,13 @@ export default function LectureDetailPage() {
               "Generate learning content"
             )}
           </button>
-          <button
-            className={lecture.quiz_generated ? "btn-primary" : "btn-secondary"}
-            disabled={working || !lecture.quiz_generated}
-            onClick={handleStartQuiz}
-            type="button"
-          >
-            {working && workingLabel === "Starting session..." ? (
-              <span className="inline-flex items-center gap-2">
-                <span className="loading-inline-spinner" />
-                Starting...
-              </span>
-            ) : (
-              "Start quiz"
-            )}
-          </button>
         </div>
+
         {working ? <p className="loading-inline mt-3">{workingLabel}</p> : null}
+
         {!lecture.quiz_generated ? (
           <p className="plain-note mt-3">
-            Generate quiz first, then start a session immediately.
+            Generate learning content first, then choose quiz mode or game mode.
           </p>
         ) : null}
 
@@ -250,6 +237,77 @@ export default function LectureDetailPage() {
           <p className="plain-note mt-4">
             {generationResult.question_count} questions ready.
           </p>
+        ) : null}
+
+        {error ? <p className="mt-4 text-sm text-red-300">{error}</p> : null}
+
+        {lecture.quiz_generated ? (
+          <div className="mt-10">
+            <p className="eyebrow">Choose mode</p>
+            <div className="mt-6 grid gap-6 lg:grid-cols-2">
+              <div className="rounded-[32px] border border-white/10 bg-white/[0.04] p-8 min-h-[420px] flex flex-col">
+                <p className="eyebrow">Quiz mode</p>
+                <h3 className="mt-4 text-[2.2rem] leading-[1.05] font-medium tracking-[-0.06em] text-[var(--text-strong)]">
+                  Fast diagnostic check
+                </h3>
+                <p className="plain-note mt-4 max-w-[34rem]">
+                  Best for quickly measuring understanding, identifying weak
+                  concepts, and getting immediate answer feedback.
+                </p>
+                <ul className="mt-6 space-y-3 text-base text-[var(--text-muted)]">
+                  <li>• Multiple-choice questions</li>
+                  <li>• Immediate correctness feedback</li>
+                  <li>• Supports mastery tracking</li>
+                </ul>
+                <button
+                  className="btn-primary mt-auto w-fit px-8 py-4 text-base"
+                  disabled={working}
+                  onClick={handleStartQuiz}
+                  type="button"
+                >
+                  {working && workingLabel === "Starting session..." ? (
+                    <span className="inline-flex items-center gap-2">
+                      <span className="loading-inline-spinner" />
+                      Starting...
+                    </span>
+                  ) : (
+                    "Start quiz"
+                  )}
+                </button>
+              </div>
+
+              <div className="rounded-[32px] border border-white/10 bg-white/[0.04] p-8 min-h-[420px] flex flex-col">
+                <p className="eyebrow">Game mode</p>
+                <h3 className="mt-4 text-[2.2rem] leading-[1.05] font-medium tracking-[-0.06em] text-[var(--text-strong)]">
+                  Interactive learning play
+                </h3>
+                <p className="plain-note mt-4 max-w-[34rem]">
+                  Best for engagement, repeated practice, and turning study into
+                  a more motivating experience.
+                </p>
+                <ul className="mt-6 space-y-3 text-base text-[var(--text-muted)]">
+                  <li>• Same concepts, different experience</li>
+                  <li>• More playful and immersive</li>
+                  <li>• Good for reinforcement and retention</li>
+                </ul>
+                <button
+                  className="btn-secondary mt-auto w-fit px-8 py-4 text-base"
+                  disabled={working}
+                  onClick={handleStartGame}
+                  type="button"
+                >
+                  {working && workingLabel === "Opening game mode..." ? (
+                    <span className="inline-flex items-center gap-2">
+                      <span className="loading-inline-spinner" />
+                      Opening...
+                    </span>
+                  ) : (
+                    "Play game"
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
         ) : null}
       </section>
 
