@@ -37,4 +37,4 @@ def get_recommendations(user_id: UUID, session: Session = Depends(get_db)) -> Re
     if not user:
         raise NotFoundError("User not found.")
     service = RecommendationService(session)
-    return service.refresh_recommendations(user_id)
+    return service.get_recommendations(user_id)
