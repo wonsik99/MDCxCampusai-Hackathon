@@ -1,69 +1,127 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 
 import { useUserContext } from "@/components/user-context";
+import { getConceptMastery, getRecommendations, listLectures } from "@/lib/api";
+import { ConceptMasteryRead, LectureListItem, Recommendation } from "@/lib/types";
 
 export default function HomePage() {
   const { selectedUser } = useUserContext();
+  const [lectures, setLectures] = useState<LectureListItem[]>([]);
+  const [masteries, setMasteries] = useState<ConceptMasteryRead[]>([]);
+  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+
+  useEffect(() => {
+    if (!selectedUser) {
+      return;
+    }
+    void Promise.all([
+      listLectures(selectedUser.id),
+      getConceptMastery(selectedUser.id),
+      getRecommendations(selectedUser.id)
+    ]).then(([lectureData, masteryData, recommendationData]) => {
+      setLectures(lectureData);
+      setMasteries(masteryData);
+      setRecommendations(recommendationData.recommendations);
+    });
+  }, [selectedUser]);
+
+  const weakConcepts = useMemo(() => masteries.filter((item) => item.is_weak), [masteries]);
+  const latestLecture = lectures[0] ?? null;
+  const nextRecommendation = recommendations[0] ?? null;
 
   return (
-    <div className="space-y-8">
-      <section className="overflow-hidden rounded-[40px] border border-ink/10 bg-white/75 p-8 shadow-glow">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-clay">Production-style MVP</p>
-        <h2 className="mt-4 text-5xl font-semibold leading-tight text-ink" style={{ fontFamily: "var(--font-heading)" }}>
-          Turn lecture files into concept-level learning diagnostics.
-        </h2>
-        <p className="mt-5 max-w-3xl text-lg leading-8 text-ink/75">
-          StruggleSense is built to go beyond flashcards. It transforms lecture material into active quiz play, stores answer history, detects weak concepts and prerequisite gaps, and recommends what the learner should study next.
-        </p>
+    <div className="space-y-10">
+      <section>
+        <p className="eyebrow">Overview</p>
+        <h1 className="mt-4 max-w-5xl text-[clamp(2.5rem,5vw,5.4rem)] font-medium leading-[0.92] tracking-[-0.08em] text-[var(--text-strong)]">
+          Study state, quickly.
+        </h1>
         <div className="mt-8 flex flex-wrap gap-3">
-          <Link className="rounded-full bg-clay px-5 py-3 text-sm font-semibold text-white" href="/upload">
-            Upload a lecture
+          <Link className="btn-primary" href="/upload">
+            Upload
           </Link>
-          <Link className="rounded-full bg-ink px-5 py-3 text-sm font-semibold text-sand" href="/dashboard">
-            View analytics
+          <Link className="btn-secondary" href="/dashboard">
+            Analytics
           </Link>
+        </div>
+
+        <div className="plain-strip mt-8 grid gap-0 md:grid-cols-4">
+          <div className="py-4 md:py-5 md:pr-6">
+            <p className="eyebrow">Learner</p>
+            <p className="mt-2 text-lg font-medium tracking-[-0.04em] text-[var(--text-strong)]">
+              {selectedUser?.name ?? "Not selected"}
+            </p>
+          </div>
+          <div className="py-4 md:border-l md:border-white/10 md:px-6 md:py-5">
+            <p className="eyebrow">Lectures</p>
+            <p className="mt-2 text-[2rem] font-medium tracking-[-0.08em] text-[var(--text-strong)]">{lectures.length}</p>
+          </div>
+          <div className="py-4 md:border-l md:border-white/10 md:px-6 md:py-5">
+            <p className="eyebrow">Weak</p>
+            <p className="mt-2 text-[2rem] font-medium tracking-[-0.08em] text-[var(--text-strong)]">{weakConcepts.length}</p>
+          </div>
+          <div className="py-4 md:border-l md:border-white/10 md:pl-6 md:py-5">
+            <p className="eyebrow">Recommendations</p>
+            <p className="mt-2 text-[2rem] font-medium tracking-[-0.08em] text-[var(--text-strong)]">{recommendations.length}</p>
+          </div>
         </div>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-3">
-        {[
-          {
-            title: "1. Content understanding",
-            copy: "PDF or raw text is cleaned, summarized, concept-tagged, and prepared for structured quiz generation."
-          },
-          {
-            title: "2. Gameplay analytics",
-            copy: "Server-side grading updates mastery per concept and flags repeated recent mistakes deterministically."
-          },
-          {
-            title: "3. Ordered study guidance",
-            copy: "Recommendations are sorted in prerequisite-aware order so the learner revisits the blocking concept first."
-          }
-        ].map((item) => (
-          <article className="rounded-[28px] border border-ink/10 bg-white/80 p-6 shadow-glow" key={item.title}>
-            <h3 className="text-xl font-semibold text-ink">{item.title}</h3>
-            <p className="mt-3 text-sm leading-7 text-ink/70">{item.copy}</p>
-          </article>
-        ))}
-      </section>
+      <section className="grid gap-10 xl:grid-cols-[minmax(0,1fr),minmax(320px,0.92fr)]">
+        <div className="space-y-10">
+          <section className="plain-section">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p className="eyebrow">Needs attention</p>
+                <h2 className="section-title mt-3">Weak concepts</h2>
+              </div>
+              <Link className="editorial-link" href="/recommendations">
+                Recommendations
+              </Link>
+            </div>
 
-      <section className="grid gap-6 lg:grid-cols-[1.4fr,1fr]">
-        <article className="rounded-[32px] border border-ink/10 bg-ink p-7 text-sand shadow-glow">
-          <p className="text-xs uppercase tracking-[0.22em] text-sand/65">Current demo student</p>
-          <h3 className="mt-3 text-2xl font-semibold">{selectedUser?.name ?? "Select a student from the sidebar"}</h3>
-          <p className="mt-3 text-sm leading-7 text-sand/75">
-            The web app identifies the active learner with <code>X-User-Id</code>, mirroring how a future auth layer can resolve the current user without changing lecture or quiz routes.
-          </p>
-        </article>
-        <article className="rounded-[32px] border border-ink/10 bg-white/80 p-7 shadow-glow">
-          <p className="text-xs uppercase tracking-[0.22em] text-moss">Unity handoff</p>
-          <h3 className="mt-3 text-2xl font-semibold text-ink">Thin client by design</h3>
-          <p className="mt-3 text-sm leading-7 text-ink/70">
-            Unity will later call <code>/quiz-sessions/start</code>, <code>/questions</code>, <code>/submit-answer</code>, <code>/finish</code>, and <code>/users/:id/recommendations</code>. No gameplay rules are implemented in the browser.
-          </p>
-        </article>
+            <div className="mt-6 flex flex-wrap gap-3">
+              {weakConcepts.length > 0 ? (
+                weakConcepts.slice(0, 8).map((concept) => (
+                  <span className="badge-primary" key={concept.concept_id}>
+                    {concept.concept_name}
+                  </span>
+                ))
+              ) : (
+                <p className="plain-note">No weak concepts.</p>
+              )}
+            </div>
+          </section>
+
+          <section className="plain-section">
+            <p className="eyebrow">Latest lecture</p>
+            <h2 className="section-title mt-3">{latestLecture?.title ?? "No lecture"}</h2>
+            <div className="mt-5 flex flex-wrap gap-3 text-sm text-[var(--text-muted)]">
+              {latestLecture ? (
+                <>
+                  <span>{latestLecture.concept_count} concepts</span>
+                  <span>{latestLecture.question_count} questions</span>
+                </>
+              ) : (
+                <span>Upload a lecture to start.</span>
+              )}
+            </div>
+            {latestLecture ? (
+              <Link className="editorial-link mt-6" href={`/lectures/${latestLecture.id}`}>
+                Open lecture
+              </Link>
+            ) : null}
+          </section>
+        </div>
+
+        <section className="plain-section xl:pt-0 xl:border-t-0">
+          <p className="eyebrow">Next recommendation</p>
+          <h2 className="section-title mt-3">{nextRecommendation?.title ?? "No recommendation"}</h2>
+          {nextRecommendation?.message ? <p className="plain-note mt-4">{nextRecommendation.message}</p> : null}
+        </section>
       </section>
     </div>
   );

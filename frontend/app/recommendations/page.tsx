@@ -25,17 +25,19 @@ export default function RecommendationsPage() {
   }, [selectedUser]);
 
   return (
-    <div className="space-y-8">
-      <section className="rounded-[36px] border border-ink/10 bg-white/80 p-8 shadow-glow">
-        <p className="text-xs uppercase tracking-[0.2em] text-moss">Prerequisite-aware next steps</p>
-        <h2 className="mt-3 text-4xl font-semibold text-ink" style={{ fontFamily: "var(--font-heading)" }}>
-          Ordered study recommendations
-        </h2>
-        <p className="mt-4 max-w-3xl text-sm leading-7 text-ink/70">
-          Recommendation order is decided by backend analytics. The model only helps phrase the action clearly after weak concepts and prerequisite gaps have been chosen deterministically.
-        </p>
+    <div className="space-y-10">
+      <section>
+        <p className="eyebrow">Recommendations</p>
+        <h1 className="mt-4 max-w-4xl text-[clamp(2.2rem,4.2vw,4.3rem)] font-medium leading-[0.94] tracking-[-0.07em] text-[var(--text-strong)]">
+          What to review next.
+        </h1>
+        <div className="plain-strip mt-8 py-4">
+          <p className="text-sm text-[var(--text-muted)]">{recommendations.length} items</p>
+        </div>
       </section>
-      {error ? <p className="rounded-2xl bg-white/70 p-4 text-sm text-ember shadow-glow">{error}</p> : null}
+
+      {error ? <p className="border-t border-red-400/30 pt-4 text-sm text-red-300">{error}</p> : null}
+
       <RecommendationList recommendations={recommendations} />
     </div>
   );

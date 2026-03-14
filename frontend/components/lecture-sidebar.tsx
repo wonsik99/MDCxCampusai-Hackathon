@@ -23,33 +23,43 @@ export function LectureSidebar({ userId }: { userId: string | null }) {
   }, [userId]);
 
   return (
-    <aside className="rounded-[28px] border border-ink/10 bg-white/80 p-5 shadow-glow">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.24em] text-ink/60">Lecture Library</h2>
-        <Link className="text-sm font-medium text-clay" href="/upload">
+    <div>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <p className="eyebrow">Lecture library</p>
+        </div>
+        <Link className="editorial-link" href="/upload">
           Upload
         </Link>
       </div>
-      {error ? <p className="text-sm text-ember">{error}</p> : null}
-      <div className="space-y-3">
+
+      {error ? <p className="mb-3 text-sm text-red-300">{error}</p> : null}
+
+      <div className="divide-y divide-white/10">
         {lectures.length === 0 ? (
-          <div className="rounded-2xl bg-sand p-4 text-sm text-ink/70">
-            No lectures yet. Upload one to generate concepts and quiz content.
+          <div className="empty-state text-sm leading-7">
+            No lectures yet. Upload one to create the first concept map.
           </div>
         ) : null}
+
         {lectures.map((lecture) => (
           <Link
-            className="block rounded-2xl border border-ink/8 bg-mist/50 p-4 transition hover:border-clay/40 hover:bg-white"
-            key={lecture.id}
+            className="block py-4 transition hover:text-white"
             href={`/lectures/${lecture.id}`}
+            key={lecture.id}
           >
-            <p className="font-semibold text-ink">{lecture.title}</p>
-            <p className="mt-1 text-sm text-ink/65">
-              {lecture.concept_count} concepts • {lecture.question_count} questions
-            </p>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-semibold tracking-[-0.03em] text-[var(--text-strong)]">{lecture.title}</p>
+                <p className="mt-1 text-sm text-[var(--text-muted)]">
+                  {lecture.concept_count} concepts • {lecture.question_count} questions
+                </p>
+              </div>
+              <span className="badge">{lecture.source_type}</span>
+            </div>
           </Link>
         ))}
       </div>
-    </aside>
+    </div>
   );
 }

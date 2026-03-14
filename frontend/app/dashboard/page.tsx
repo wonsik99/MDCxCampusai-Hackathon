@@ -27,47 +27,86 @@ export default function DashboardPage() {
   }, [selectedUser]);
 
   const weakConcepts = getWeakConcepts(masteries);
+  const stableConcepts = masteries.filter((item) => item.mastery_score >= 0.75).length;
 
   return (
-    <div className="space-y-8">
-      <section className="grid gap-6 md:grid-cols-3">
-        <article className="rounded-[28px] border border-ink/10 bg-white/80 p-6 shadow-glow">
-          <p className="text-xs uppercase tracking-[0.2em] text-ink/55">Concept records</p>
-          <h2 className="mt-3 text-4xl font-semibold text-ink">{masteries.length}</h2>
-        </article>
-        <article className="rounded-[28px] border border-ink/10 bg-white/80 p-6 shadow-glow">
-          <p className="text-xs uppercase tracking-[0.2em] text-ink/55">Weak concepts</p>
-          <h2 className="mt-3 text-4xl font-semibold text-ember">{weakConcepts.length}</h2>
-        </article>
-        <article className="rounded-[28px] border border-ink/10 bg-white/80 p-6 shadow-glow">
-          <p className="text-xs uppercase tracking-[0.2em] text-ink/55">Next action</p>
-          <Link className="mt-4 inline-flex rounded-full bg-clay px-4 py-2 text-sm font-semibold text-white" href="/recommendations">
-            Review ordered plan
-          </Link>
-        </article>
+    <div className="space-y-10">
+      <section>
+        <p className="eyebrow">Mastery overview</p>
+        <h1 className="mt-4 max-w-4xl text-[clamp(2.1rem,3.8vw,3.8rem)] font-medium leading-[0.96] tracking-[-0.06em] text-[var(--text-strong)]">
+          Concept mastery at a glance
+        </h1>
+
+        <div className="plain-strip mt-8 grid gap-0 md:grid-cols-4">
+          <div className="py-4 md:py-5 md:pr-6">
+            <p className="eyebrow">Learner</p>
+            <p className="mt-2 text-lg font-medium tracking-[-0.04em] text-[var(--text-strong)]">
+              {selectedUser?.name ?? "Not selected"}
+            </p>
+          </div>
+          <div className="py-4 md:border-l md:border-white/10 md:px-6 md:py-5">
+            <p className="eyebrow">Concepts</p>
+            <p className="mt-2 text-[2rem] font-medium tracking-[-0.08em] text-[var(--text-strong)]">{masteries.length}</p>
+          </div>
+          <div className="py-4 md:border-l md:border-white/10 md:px-6 md:py-5">
+            <p className="eyebrow">Weak</p>
+            <p className="mt-2 text-[2rem] font-medium tracking-[-0.08em] text-[var(--text-strong)]">{weakConcepts.length}</p>
+          </div>
+          <div className="py-4 md:border-l md:border-white/10 md:pl-6 md:py-5">
+            <p className="eyebrow">Stable</p>
+            <p className="mt-2 text-[2rem] font-medium tracking-[-0.08em] text-[var(--text-strong)]">{stableConcepts}</p>
+          </div>
+        </div>
       </section>
 
-      {weakConcepts.length > 0 ? (
-        <section className="rounded-[32px] border border-ember/15 bg-white/80 p-6 shadow-glow">
-          <p className="text-xs uppercase tracking-[0.2em] text-ember">Detected weak concepts</p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            {weakConcepts.map((concept) => (
-              <span className="rounded-full bg-ember/10 px-4 py-2 text-sm font-medium text-ember" key={concept.concept_id}>
+      <section className="plain-section">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="eyebrow">Needs attention</p>
+            <h2 className="section-title mt-3">
+              {weakConcepts.length > 0 ? "Review first" : "No weak concepts"}
+            </h2>
+          </div>
+          {weakConcepts.length > 0 ? (
+            <Link className="btn-secondary" href="/recommendations">
+              Review plan
+            </Link>
+          ) : null}
+        </div>
+
+        <div className="mt-6 flex flex-wrap gap-3">
+          {weakConcepts.length > 0 ? (
+            weakConcepts.map((concept) => (
+              <span className="badge-primary" key={concept.concept_id}>
                 {concept.concept_name}
               </span>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {error ? <p className="rounded-2xl bg-white/70 p-4 text-sm text-ember shadow-glow">{error}</p> : null}
-      {masteries.length === 0 && !error ? (
-        <div className="rounded-[32px] bg-white/70 p-8 text-sm text-ink/70 shadow-glow">
-          No mastery data yet. Complete a quiz session to populate analytics.
+            ))
+          ) : (
+            <div className="text-sm leading-7 text-[var(--text-muted)]">
+              No weak concepts flagged yet.
+            </div>
+          )}
         </div>
-      ) : (
-        <MasteryTable masteries={masteries} />
-      )}
+      </section>
+
+      {error ? <p className="border-t border-red-400/30 pt-4 text-sm text-red-300">{error}</p> : null}
+
+      <section className="space-y-6">
+        <div>
+          <p className="eyebrow">Lecture breakdown</p>
+          <h2 className="section-title mt-3">
+            {selectedUser?.name ?? "Learner"} mastery by lecture
+          </h2>
+        </div>
+
+        {masteries.length === 0 && !error ? (
+          <div className="plain-section text-sm leading-7 text-[var(--text-muted)]">
+            No mastery data yet.
+          </div>
+        ) : (
+          <MasteryTable masteries={masteries} />
+        )}
+      </section>
     </div>
   );
 }

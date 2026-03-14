@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { RecommendationList } from "@/components/recommendation-list";
 
 describe("RecommendationList", () => {
-  it("renders ordered recommendation cards", () => {
+  it("renders ordered recommendations", () => {
     render(
       <RecommendationList
         recommendations={[
@@ -24,7 +24,8 @@ describe("RecommendationList", () => {
       />
     );
 
-    expect(screen.getByText("Step 1")).toBeInTheDocument();
+    expect(screen.getByText("1")).toBeInTheDocument();
     expect(screen.getByText("Rebuild determinant")).toBeInTheDocument();
+    expect(screen.getByText("prerequisite gap")).toBeInTheDocument();
   });
 });

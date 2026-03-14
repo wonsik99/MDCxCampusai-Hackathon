@@ -90,54 +90,62 @@ export default function QuizPage() {
   }
 
   if (!session) {
-    return <div className="rounded-[32px] bg-white/70 p-8 shadow-glow">Loading quiz...</div>;
+    return <div className="text-sm text-[var(--text-muted)]">Loading quiz...</div>;
   }
 
   if (finishResult || session.status === "completed") {
     const summary = finishResult;
     return (
-      <div className="space-y-8">
-        <section className="rounded-[36px] border border-moss/20 bg-moss p-8 text-white shadow-glow">
-          <p className="text-xs uppercase tracking-[0.2em] text-white/70">Session finished</p>
-          <h2 className="mt-3 text-4xl font-semibold">{session.lecture_title}</h2>
-          <p className="mt-4 text-sm leading-7 text-white/80">
-            Score: {summary ? Math.round(summary.score * 100) : Math.round((session.correct_answers / session.total_questions) * 100)}%
-          </p>
+      <div className="space-y-10">
+        <section>
+          <p className="eyebrow">Session finished</p>
+          <h1 className="mt-4 max-w-4xl text-[clamp(2.2rem,4.2vw,4.3rem)] font-medium leading-[0.94] tracking-[-0.07em] text-[var(--text-strong)]">
+            {session.lecture_title}
+          </h1>
+          <div className="plain-strip mt-8 py-4">
+            <p className="text-sm text-[var(--text-muted)]">
+              Score {summary
+                ? Math.round(summary.score * 100)
+                : Math.round((session.correct_answers / session.total_questions) * 100)}
+              %
+            </p>
+          </div>
           <div className="mt-6 flex flex-wrap gap-3">
-            <Link className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-moss" href="/dashboard">
-              View analytics
+            <Link className="btn-primary" href="/dashboard">
+              Analytics
             </Link>
-            <Link className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white" href="/recommendations">
-              View recommendations
+            <Link className="btn-secondary" href="/recommendations">
+              Recommendations
             </Link>
           </div>
         </section>
 
         {summary ? (
-          <section className="grid gap-6 lg:grid-cols-[1fr,1fr]">
-            <div className="rounded-[32px] border border-ink/10 bg-white/80 p-6 shadow-glow">
-              <h3 className="text-2xl font-semibold text-ink">Weak concepts</h3>
-              <div className="mt-4 flex flex-wrap gap-3">
+          <section className="grid gap-10 lg:grid-cols-[0.9fr,1.1fr]">
+            <section className="plain-section lg:pt-0 lg:border-t-0">
+              <p className="eyebrow">Weak concepts</p>
+              <div className="mt-6 flex flex-wrap gap-3">
                 {summary.weak_concepts.map((concept) => (
-                  <span className="rounded-full bg-ember/10 px-4 py-2 text-sm font-medium text-ember" key={concept}>
+                  <span className="badge-primary" key={concept}>
                     {concept}
                   </span>
                 ))}
               </div>
-            </div>
-            <div className="rounded-[32px] border border-ink/10 bg-white/80 p-6 shadow-glow">
-              <h3 className="text-2xl font-semibold text-ink">Recommendation preview</h3>
-              <div className="mt-4 space-y-3">
+            </section>
+
+            <section className="plain-section lg:pt-0 lg:border-t-0">
+              <p className="eyebrow">Recommendations</p>
+              <div className="mt-6 divide-y divide-white/10">
                 {summary.recommendations.map((recommendation) => (
-                  <div className="rounded-2xl bg-mist/45 p-4" key={recommendation.recommendation_id}>
-                    <p className="text-sm font-semibold text-ink">
+                  <div className="py-4 first:pt-0 last:pb-0" key={recommendation.recommendation_id}>
+                    <p className="text-sm font-semibold text-[var(--text-strong)]">
                       {recommendation.rank}. {recommendation.title}
                     </p>
-                    <p className="mt-2 text-sm leading-7 text-ink/70">{recommendation.message}</p>
+                    <p className="plain-note mt-2">{recommendation.message}</p>
                   </div>
                 ))}
               </div>
-            </div>
+            </section>
           </section>
         ) : null}
       </div>
@@ -147,12 +155,8 @@ export default function QuizPage() {
   if (!currentQuestion) {
     return (
       <div className="space-y-6">
-        <div className="rounded-[32px] bg-white/80 p-8 shadow-glow">All questions answered. Finish the session to refresh recommendations.</div>
-        <button
-          className="rounded-full bg-clay px-5 py-3 text-sm font-semibold text-white"
-          onClick={handleFinish}
-          type="button"
-        >
+        <div className="text-sm leading-7 text-[var(--text-muted)]">All questions answered.</div>
+        <button className="btn-primary" onClick={handleFinish} type="button">
           Finish session
         </button>
       </div>
@@ -160,38 +164,60 @@ export default function QuizPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <section className="rounded-[36px] border border-ink/10 bg-white/80 p-8 shadow-glow">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-xs uppercase tracking-[0.24em] text-clay">Quiz session</p>
-            <h2 className="mt-3 text-4xl font-semibold text-ink">{session.lecture_title}</h2>
+    <div className="space-y-10">
+      <section>
+        <p className="eyebrow">Quiz</p>
+        <h1 className="mt-4 max-w-4xl text-[clamp(2.2rem,4.2vw,4.3rem)] font-medium leading-[0.94] tracking-[-0.07em] text-[var(--text-strong)]">
+          {session.lecture_title}
+        </h1>
+        <div className="plain-strip mt-8 grid gap-0 md:grid-cols-3">
+          <div className="py-4 md:py-5 md:pr-6">
+            <p className="eyebrow">Question</p>
+            <p className="mt-2 text-lg font-medium tracking-[-0.04em] text-[var(--text-strong)]">
+              {currentQuestion.sequence} / {questions.length}
+            </p>
           </div>
-          <span className="rounded-full bg-sand px-4 py-2 text-sm font-semibold text-ink/70">
-            Question {currentQuestion.sequence} / {questions.length}
-          </span>
+          <div className="py-4 md:border-l md:border-white/10 md:px-6 md:py-5">
+            <p className="eyebrow">Answered</p>
+            <p className="mt-2 text-lg font-medium tracking-[-0.04em] text-[var(--text-strong)]">{currentIndex}</p>
+          </div>
+          <div className="py-4 md:border-l md:border-white/10 md:pl-6 md:py-5">
+            <p className="eyebrow">Correct</p>
+            <p className="mt-2 text-lg font-medium tracking-[-0.04em] text-[var(--text-strong)]">{session.correct_answers}</p>
+          </div>
         </div>
       </section>
 
-      <section className="rounded-[32px] border border-ink/10 bg-white/85 p-7 shadow-glow">
-        <p className="text-xs uppercase tracking-[0.18em] text-moss">{currentQuestion.concept_name}</p>
-        <h3 className="mt-3 text-2xl font-semibold text-ink">{currentQuestion.prompt}</h3>
-        <div className="mt-6 space-y-3">
+      <section className="plain-section">
+        <p className="eyebrow">{currentQuestion.concept_name}</p>
+        <h2 className="section-title mt-4 text-[1.9rem]">{currentQuestion.prompt}</h2>
+
+        <div className="mt-8 space-y-3">
           {currentQuestion.choices.map((choice) => {
             const active = selectedChoiceId === choice.choice_id;
             return (
               <button
-                className={`w-full rounded-2xl border px-4 py-4 text-left transition ${
-                  active ? "border-clay bg-clay/10" : "border-ink/10 bg-mist/40 hover:bg-white"
+                className={`w-full border px-4 py-4 text-left transition ${
+                  active
+                    ? "border-white/[0.24] bg-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl"
+                    : "border-white/10 bg-white/[0.04] hover:border-white/[0.18] hover:bg-white/[0.06]"
                 }`}
                 key={choice.choice_id}
                 onClick={() => setSelectedChoiceId(choice.choice_id)}
                 type="button"
               >
-                <span className="mr-3 inline-flex h-8 w-8 items-center justify-center rounded-full bg-ink text-sm font-semibold text-sand">
-                  {choice.choice_id}
-                </span>
-                <span className="text-sm leading-7 text-ink/75">{choice.text}</span>
+                <div className="flex items-start gap-4">
+                  <span
+                    className={`flex h-8 w-8 items-center justify-center border text-sm font-semibold ${
+                      active
+                        ? "border-white/[0.24] bg-white/[0.16] text-[var(--text-strong)]"
+                        : "border-white/10 bg-white/8 text-[var(--text-strong)]"
+                    }`}
+                  >
+                    {choice.choice_id}
+                  </span>
+                  <span className="text-sm leading-7 text-[var(--text-strong)]">{choice.text}</span>
+                </div>
               </button>
             );
           })}
@@ -199,7 +225,7 @@ export default function QuizPage() {
 
         {!answerResult ? (
           <button
-            className="mt-6 rounded-full bg-clay px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"
+            className="btn-primary mt-8"
             disabled={!selectedChoiceId || working}
             onClick={handleSubmitAnswer}
             type="button"
@@ -207,34 +233,27 @@ export default function QuizPage() {
             Submit answer
           </button>
         ) : (
-          <div className="mt-6 rounded-[28px] border border-ink/10 bg-mist/45 p-6">
-            <p className={`text-sm font-semibold ${answerResult.is_correct ? "text-moss" : "text-ember"}`}>
+          <div className="plain-section mt-8">
+            <p className="text-sm font-semibold text-[var(--text-strong)]">
               {answerResult.is_correct ? "Correct answer" : "Needs review"}
             </p>
-            <p className="mt-3 text-sm leading-7 text-ink/75">{answerResult.explanation}</p>
-            <p className="mt-3 text-sm text-ink/65">
+            <p className="plain-note mt-3">{answerResult.explanation}</p>
+            <p className="mt-4 text-sm text-[var(--text-muted)]">
               Mastery for {answerResult.mastery.concept_name}: {(answerResult.mastery.mastery_score * 100).toFixed(0)}%
             </p>
             {currentIndex < questions.length - 1 ? (
-              <button
-                className="mt-5 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-sand"
-                onClick={handleNext}
-                type="button"
-              >
+              <button className="btn-secondary mt-6" onClick={handleNext} type="button">
                 Next question
               </button>
             ) : (
-              <button
-                className="mt-5 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-sand"
-                onClick={handleFinish}
-                type="button"
-              >
+              <button className="btn-secondary mt-6" onClick={handleFinish} type="button">
                 Finish session
               </button>
             )}
           </div>
         )}
-        {error ? <p className="mt-4 text-sm text-ember">{error}</p> : null}
+
+        {error ? <p className="mt-4 text-sm text-red-300">{error}</p> : null}
       </section>
     </div>
   );

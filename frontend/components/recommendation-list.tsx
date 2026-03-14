@@ -7,36 +7,36 @@ import { Recommendation } from "@/lib/types";
 export function RecommendationList({ recommendations }: { recommendations: Recommendation[] }) {
   if (recommendations.length === 0) {
     return (
-      <div className="rounded-[28px] border border-dashed border-ink/20 bg-white/70 p-6 text-sm text-ink/70">
-        Recommendations will appear after the learner has answer history.
+      <div className="plain-section text-sm leading-7 text-[var(--text-muted)]">
+        No recommendations yet.
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="divide-y divide-white/10">
       {recommendations.map((recommendation) => (
-        <article
-          className="rounded-[28px] border border-ink/10 bg-white/85 p-6 shadow-glow"
-          key={recommendation.recommendation_id}
-        >
-          <div className="mb-3 flex items-center justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-moss">
-                Step {recommendation.rank}
-              </p>
-              <h3 className="mt-1 text-xl font-semibold text-ink">{recommendation.title}</h3>
-            </div>
-            <span className="rounded-full bg-sand px-3 py-1 text-xs font-medium text-ink/70">
-              {recommendation.reason_code.replaceAll("_", " ")}
-            </span>
+        <article className="grid gap-4 py-5 md:grid-cols-[56px,1fr]" key={recommendation.recommendation_id}>
+          <div className="text-[1.45rem] font-medium tracking-[-0.06em] text-[var(--text-strong)]">
+            {recommendation.rank}
           </div>
-          <p className="text-sm leading-7 text-ink/75">{recommendation.message}</p>
-          {recommendation.lecture_title ? (
-            <p className="mt-3 text-xs uppercase tracking-[0.18em] text-ink/50">
-              Lecture: {recommendation.lecture_title}
-            </p>
-          ) : null}
+
+          <div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h3 className="text-[1.25rem] font-medium leading-tight tracking-[-0.05em] text-[var(--text-strong)]">
+                {recommendation.title}
+              </h3>
+              <span className="text-[0.72rem] uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                {recommendation.reason_code.replaceAll("_", " ")}
+              </span>
+            </div>
+            <p className="plain-note mt-3">{recommendation.message}</p>
+            {recommendation.lecture_title ? (
+              <p className="mt-3 text-xs uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                {recommendation.lecture_title}
+              </p>
+            ) : null}
+          </div>
         </article>
       ))}
     </div>

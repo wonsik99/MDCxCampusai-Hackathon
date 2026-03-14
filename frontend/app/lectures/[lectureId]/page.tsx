@@ -60,24 +60,51 @@ export default function LectureDetailPage() {
   }
 
   if (loading) {
-    return <div className="rounded-[32px] bg-white/70 p-8 shadow-glow">Loading lecture...</div>;
+    return <div className="text-sm text-[var(--text-muted)]">Loading lecture...</div>;
   }
 
   if (!lecture) {
-    return <div className="rounded-[32px] bg-white/70 p-8 shadow-glow">Lecture not found.</div>;
+    return <div className="text-sm text-[var(--text-muted)]">Lecture not found.</div>;
   }
 
   return (
-    <div className="space-y-8">
-      <section className="rounded-[36px] border border-ink/10 bg-white/80 p-8 shadow-glow">
-        <p className="text-xs uppercase tracking-[0.24em] text-clay">{lecture.source_type.toUpperCase()} lecture</p>
-        <h2 className="mt-3 text-4xl font-semibold text-ink" style={{ fontFamily: "var(--font-heading)" }}>
+    <div className="space-y-10">
+      <section>
+        <p className="eyebrow">Lecture</p>
+        <h1 className="mt-4 max-w-4xl text-[clamp(2.2rem,4.2vw,4.3rem)] font-medium leading-[0.94] tracking-[-0.07em] text-[var(--text-strong)]">
           {lecture.title}
-        </h2>
-        <p className="mt-5 text-base leading-8 text-ink/75">{lecture.summary_block.summary}</p>
+        </h1>
         <div className="mt-6 flex flex-wrap gap-3">
+          <span className="badge">{lecture.source_type}</span>
+        </div>
+
+        <div className="plain-strip mt-8 grid gap-0 md:grid-cols-3">
+          <div className="py-4 md:py-5 md:pr-6">
+            <p className="eyebrow">Concepts</p>
+            <p className="mt-2 text-[2rem] font-medium tracking-[-0.08em] text-[var(--text-strong)]">{lecture.concepts.length}</p>
+          </div>
+          <div className="py-4 md:border-l md:border-white/10 md:px-6 md:py-5">
+            <p className="eyebrow">Questions</p>
+            <p className="mt-2 text-[2rem] font-medium tracking-[-0.08em] text-[var(--text-strong)]">{lecture.question_count}</p>
+          </div>
+          <div className="py-4 md:border-l md:border-white/10 md:pl-6 md:py-5">
+            <p className="eyebrow">Provider</p>
+            <p className="mt-2 text-lg font-medium tracking-[-0.04em] text-[var(--text-strong)]">
+              {lecture.ai_metadata.used_fallback ? "Fallback" : "OpenAI"}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="plain-section">
+        <p className="eyebrow">Summary</p>
+        <p className="plain-note mt-4 max-w-4xl">{lecture.summary_block.summary}</p>
+      </section>
+
+      <section className="plain-section">
+        <div className="flex flex-wrap gap-3">
           <button
-            className="rounded-full bg-clay px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"
+            className="btn-primary"
             disabled={working}
             onClick={handleGenerateQuiz}
             type="button"
@@ -85,62 +112,54 @@ export default function LectureDetailPage() {
             {lecture.quiz_generated ? "Regenerate quiz" : "Generate quiz"}
           </button>
           <button
-            className="rounded-full bg-ink px-5 py-3 text-sm font-semibold text-sand disabled:opacity-50"
+            className="btn-secondary"
             disabled={working || !lecture.quiz_generated}
             onClick={handleStartQuiz}
             type="button"
           >
-            Start web quiz
+            Start quiz
           </button>
         </div>
-        {error ? <p className="mt-4 text-sm text-ember">{error}</p> : null}
+
         {generationResult ? (
-          <p className="mt-4 text-sm text-moss">
-            Quiz ready: {generationResult.question_count} questions covering {generationResult.concept_coverage.join(", ")}.
+          <p className="plain-note mt-4">
+            {generationResult.question_count} questions ready.
           </p>
         ) : null}
+        {error ? <p className="mt-4 text-sm text-red-300">{error}</p> : null}
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-[1.2fr,0.8fr]">
-        <article className="rounded-[32px] border border-ink/10 bg-white/85 p-6 shadow-glow">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-2xl font-semibold text-ink">Extracted concepts</h3>
-            <span className="rounded-full bg-sand px-3 py-1 text-xs font-medium text-ink/70">
-              {lecture.ai_metadata.used_fallback ? "Fallback AI" : "OpenAI"}
-            </span>
-          </div>
-          <div className="space-y-4">
-            {lecture.concepts.map((concept) => (
-              <div className="rounded-2xl border border-ink/8 bg-mist/45 p-4" key={concept.id}>
-                <div className="flex flex-wrap items-center gap-3">
-                  <h4 className="font-semibold text-ink">{concept.name}</h4>
-                  {concept.is_inferred ? (
-                    <span className="rounded-full bg-clay/15 px-3 py-1 text-xs font-semibold text-clay">
-                      inferred prerequisite
-                    </span>
-                  ) : null}
+      <section className="grid gap-10 xl:grid-cols-[minmax(0,1fr),320px]">
+        <section className="plain-section xl:pt-0 xl:border-t-0">
+          <p className="eyebrow">Concepts</p>
+          <div className="mt-6 divide-y divide-white/10">
+            {lecture.concepts.map((concept, index) => (
+              <div className="grid gap-4 py-4 first:pt-0 last:pb-0 md:grid-cols-[40px,1fr]" key={concept.id}>
+                <p className="text-[1.1rem] font-medium tracking-[-0.05em] text-[var(--text-strong)]">{index + 1}</p>
+                <div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h3 className="text-[1.05rem] font-medium tracking-[-0.04em] text-[var(--text-strong)]">{concept.name}</h3>
+                    {concept.is_inferred ? (
+                      <span className="text-[0.72rem] uppercase tracking-[0.12em] text-[var(--text-muted)]">Prerequisite</span>
+                    ) : null}
+                  </div>
+                  <p className="plain-note mt-2">{concept.description}</p>
                 </div>
-                <p className="mt-2 text-sm leading-7 text-ink/70">{concept.description}</p>
               </div>
             ))}
           </div>
-        </article>
+        </section>
 
-        <article className="rounded-[32px] border border-ink/10 bg-ink p-6 text-sand shadow-glow">
-          <p className="text-xs uppercase tracking-[0.24em] text-sand/65">Study takeaways</p>
-          <ul className="mt-4 space-y-3 text-sm leading-7 text-sand/80">
+        <section className="plain-section xl:pt-0 xl:border-t-0">
+          <p className="eyebrow">Takeaways</p>
+          <div className="mt-6 divide-y divide-white/10">
             {lecture.summary_block.key_takeaways.map((item) => (
-              <li key={item}>• {item}</li>
+              <p className="py-3 text-sm leading-7 text-[var(--text-muted)] first:pt-0 last:pb-0" key={item}>
+                {item}
+              </p>
             ))}
-          </ul>
-          <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-4">
-            <p className="text-xs uppercase tracking-[0.18em] text-sand/55">Quiz status</p>
-            <p className="mt-2 text-2xl font-semibold">{lecture.question_count} questions ready</p>
-            <p className="mt-2 text-sm text-sand/75">
-              The browser quiz and the future Unity client both use the same backend session APIs.
-            </p>
           </div>
-        </article>
+        </section>
       </section>
     </div>
   );

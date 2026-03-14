@@ -37,75 +37,82 @@ export default function UploadPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <section className="rounded-[36px] border border-ink/10 bg-white/80 p-8 shadow-glow">
-        <p className="text-xs uppercase tracking-[0.22em] text-moss">Lecture ingestion</p>
-        <h2 className="mt-3 text-4xl font-semibold text-ink" style={{ fontFamily: "var(--font-heading)" }}>
-          Upload source material for concept extraction
-        </h2>
-        <p className="mt-4 max-w-3xl text-sm leading-7 text-ink/70">
-          Provide either a PDF or raw lecture text. The backend extracts clean text, summarizes it, identifies concepts, and stores metadata before quiz generation starts.
-        </p>
+    <div className="space-y-10">
+      <section>
+        <p className="eyebrow">Upload</p>
+        <h1 className="mt-4 max-w-4xl text-[clamp(2.2rem,4.2vw,4.3rem)] font-medium leading-[0.94] tracking-[-0.07em] text-[var(--text-strong)]">
+          Add a lecture.
+        </h1>
       </section>
 
-      <form className="grid gap-6 lg:grid-cols-[1.3fr,0.9fr]" onSubmit={onSubmit}>
-        <div className="rounded-[32px] border border-ink/10 bg-white/85 p-6 shadow-glow">
-          <label className="block text-sm font-medium text-ink">
-            Lecture title
+      <form className="grid gap-10 xl:grid-cols-[minmax(0,1fr),320px]" onSubmit={onSubmit}>
+        <section className="space-y-8">
+          <label className="block">
+            <span className="eyebrow">Title</span>
             <input
-              className="mt-2 w-full rounded-2xl border border-ink/10 bg-mist/45 px-4 py-3 outline-none"
+              className="field mt-3"
               onChange={(event) => setTitle(event.target.value)}
               placeholder="Linear Algebra Lecture 4"
               value={title}
             />
           </label>
 
-          <label className="mt-5 block text-sm font-medium text-ink">
-            Raw lecture text
+          <label className="block">
+            <span className="eyebrow">Text</span>
             <textarea
-              className="mt-2 min-h-[260px] w-full rounded-3xl border border-ink/10 bg-mist/45 px-4 py-4 outline-none"
+              className="field-area mt-3"
               onChange={(event) => setRawText(event.target.value)}
-              placeholder="Paste lecture notes here, or leave blank and upload a PDF."
+              placeholder="Paste lecture notes here."
               value={rawText}
             />
           </label>
-        </div>
 
-        <div className="space-y-6">
-          <section className="rounded-[32px] border border-ink/10 bg-white/80 p-6 shadow-glow">
-            <label className="block text-sm font-medium text-ink">
-              PDF upload
+          <div className="plain-section">
+            <p className="eyebrow">PDF</p>
+            <label className="mt-4 block rounded-[16px] border border-dashed border-white/[0.18] bg-white/[0.05] px-4 py-6 text-sm text-[var(--text-muted)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl">
+              <span className="block font-medium text-[var(--text-strong)]">
+                {file ? file.name : "Choose a PDF"}
+              </span>
               <input
                 accept=".pdf,application/pdf"
-                className="mt-3 block w-full text-sm text-ink"
+                className="hidden"
                 onChange={(event) => setFile(event.target.files?.[0] ?? null)}
                 type="file"
               />
             </label>
-            <p className="mt-3 text-sm text-ink/65">
-              Use one source at a time. If both raw text and a file are provided, the backend rejects the request.
-            </p>
-            <button
-              className="mt-6 w-full rounded-full bg-clay px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
-              disabled={submitting}
-              type="submit"
-            >
-              {submitting ? "Analyzing lecture..." : "Upload and analyze"}
-            </button>
-            {error ? <p className="mt-3 text-sm text-ember">{error}</p> : null}
+          </div>
+        </section>
+
+        <aside className="space-y-8">
+          <section className="plain-section xl:pt-0 xl:border-t-0">
+            <p className="eyebrow">Rules</p>
+            <div className="mt-4 space-y-2 text-sm text-[var(--text-muted)]">
+              <p>Use text or PDF.</p>
+              <p>Learner: {selectedUser?.name ?? "Not selected"}</p>
+            </div>
           </section>
 
-          {result ? (
-            <section className="rounded-[32px] border border-moss/20 bg-moss p-6 text-white shadow-glow">
-              <p className="text-xs uppercase tracking-[0.22em] text-white/70">Upload complete</p>
-              <h3 className="mt-3 text-2xl font-semibold">{result.lecture.title}</h3>
-              <p className="mt-3 text-sm leading-7 text-white/80">{result.lecture.summary_block.summary}</p>
-              <Link className="mt-5 inline-flex rounded-full bg-white px-4 py-2 text-sm font-semibold text-moss" href={`/lectures/${result.lecture.id}`}>
-                Open lecture detail
-              </Link>
-            </section>
-          ) : null}
-        </div>
+          <section className="plain-section">
+            <button className="btn-primary w-full" disabled={submitting} type="submit">
+              {submitting ? "Analyzing..." : "Upload"}
+            </button>
+            {error ? <p className="mt-4 text-sm text-red-300">{error}</p> : null}
+          </section>
+
+          <section className="plain-section">
+            <p className="eyebrow">Result</p>
+            {result ? (
+              <>
+                <h2 className="section-title mt-3">{result.lecture.title}</h2>
+                <Link className="editorial-link mt-6" href={`/lectures/${result.lecture.id}`}>
+                  Open lecture
+                </Link>
+              </>
+            ) : (
+              <p className="plain-note mt-4">Nothing uploaded yet.</p>
+            )}
+          </section>
+        </aside>
       </form>
     </div>
   );
