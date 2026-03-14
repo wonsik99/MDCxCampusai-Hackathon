@@ -112,6 +112,14 @@ export default function UploadPage() {
               <>
                 <h2 className="section-title mt-3">{result.lecture.title}</h2>
                 <div className="mt-6 space-y-3">
+                  <Link className="btn-primary w-full"
+                    href={{
+                      pathname: "/games/meteorite",
+                      query: { lectureId: result.lecture.id },
+                    }}
+                  >
+                    Play Game
+                  </Link>
                   <Link className="btn-primary w-full" href={`/lectures/${result.lecture.id}?autogen=1`}>
                     Generate quiz now
                   </Link>
