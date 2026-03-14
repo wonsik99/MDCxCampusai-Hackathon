@@ -20,7 +20,6 @@ from app.services.lecture_service import LectureService
 
 router = APIRouter(prefix="/lectures")
 
-
 @router.post("/upload", response_model=LectureUploadResponse)
 async def upload_lecture(
     title: str | None = Form(default=None),

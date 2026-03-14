@@ -15,3 +15,4 @@ frontend/.env.local
 coverage/
 dist/
 build/
+env/
