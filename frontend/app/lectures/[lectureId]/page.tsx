@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
@@ -91,20 +92,6 @@ export default function LectureDetailPage() {
     } catch (caught) {
       setError(
         caught instanceof Error ? caught.message : "Unable to start quiz.",
-      );
-      setWorking(false);
-    }
-  }
-
-  async function handleStartGame() {
-    if (!selectedUser || !lecture) return;
-    setWorking(true);
-    setWorkingLabel("Opening game mode...");
-    try {
-      router.push(`/game/${lecture.id}`);
-    } catch (caught) {
-      setError(
-        caught instanceof Error ? caught.message : "Unable to start game.",
       );
       setWorking(false);
     }
@@ -290,21 +277,15 @@ export default function LectureDetailPage() {
                   <li>• More playful and immersive</li>
                   <li>• Good for reinforcement and retention</li>
                 </ul>
-                <button
+                <Link
                   className="btn-secondary mt-auto w-fit px-8 py-4 text-base"
-                  disabled={working}
-                  onClick={handleStartGame}
-                  type="button"
+                  href={{
+                    pathname: "/games/meteorite",
+                    query: { lectureId: lecture.id },
+                  }}
                 >
-                  {working && workingLabel === "Opening game mode..." ? (
-                    <span className="inline-flex items-center gap-2">
-                      <span className="loading-inline-spinner" />
-                      Opening...
-                    </span>
-                  ) : (
-                    "Play game"
-                  )}
-                </button>
+                  Play game
+                </Link>
               </div>
             </div>
           </div>
