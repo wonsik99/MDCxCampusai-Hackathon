@@ -9,9 +9,10 @@ from sqlalchemy.orm import Session
 from app.core.dependencies import get_db
 from app.core.exceptions import NotFoundError
 from app.models import User
-from app.schemas.user import DemoUserRead, ConceptMasteryRead, RecommendationsResponse
+from app.schemas.user import ConceptMasteryRead, DemoUserRead, RecommendationsResponse, StarJarsResponse
 from app.services.analytics_service import AnalyticsService
 from app.services.recommendation_service import RecommendationService
+from app.services.star_jar_service import StarJarService
 
 
 router = APIRouter()
@@ -38,3 +39,11 @@ def get_recommendations(user_id: UUID, session: Session = Depends(get_db)) -> Re
         raise NotFoundError("User not found.")
     service = RecommendationService(session)
     return service.get_recommendations(user_id)
+
+
+@router.get("/users/{user_id}/star-jars", response_model=StarJarsResponse)
+def get_star_jars(user_id: UUID, session: Session = Depends(get_db)) -> StarJarsResponse:
+    user = session.scalar(select(User).where(User.id == user_id))
+    if not user:
+        raise NotFoundError("User not found.")
+    return StarJarService(session).get_star_jars(user_id)

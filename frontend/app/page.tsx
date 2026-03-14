@@ -36,7 +36,7 @@ export default function HomePage() {
     <div className="space-y-10">
       <section>
         <p className="eyebrow">Overview</p>
-        <h1 className="mt-4 max-w-5xl text-[clamp(2.5rem,5vw,5.4rem)] font-medium leading-[0.92] tracking-[-0.08em] text-[var(--text-strong)]">
+        <h1 className="mt-4 max-w-5xl text-[clamp(1.8rem,3.2vw,3rem)] font-medium leading-[0.98] tracking-[-0.05em] text-[var(--text-strong)]">
           Study state, quickly.
         </h1>
         <div className="mt-8 flex flex-wrap gap-3">

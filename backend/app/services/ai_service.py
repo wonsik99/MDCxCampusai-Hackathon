@@ -12,25 +12,26 @@ from app.schemas.ai import (
     QuizGenerationOutput,
 )
 from app.schemas.common import AIUsageMetadata
-from app.services.ai_provider import OpenAIProvider
+from app.services.ai_provider import FallbackAIProvider, OpenAIProvider
 
 
 class AIService:
     def __init__(self) -> None:
         settings = get_settings()
-        if not settings.openai_api_key:
-            raise AIProviderError("OPENAI_API_KEY is required. Set it in .env to use the application.")
-        self._provider = OpenAIProvider(settings)
+        self._fallback_provider = FallbackAIProvider(settings)
+        self._provider = OpenAIProvider(settings) if settings.openai_api_key else None
+        self._last_provider_name = self._fallback_provider.provider_name if not self._provider else self._provider.provider_name
+        self._used_fallback = self._provider is None
 
     @property
     def metadata(self) -> AIUsageMetadata:
-        return AIUsageMetadata(provider=self._provider.provider_name, used_fallback=False)
+        return AIUsageMetadata(provider=self._last_provider_name, used_fallback=self._used_fallback)
 
     def summarize_lecture(self, text: str) -> LectureSummaryOutput:
-        return LectureSummaryOutput.model_validate(self._provider.summarize_lecture(text))
+        return LectureSummaryOutput.model_validate(self._call("summarize_lecture", text))
 
     def extract_concepts(self, text: str) -> ConceptExtractionOutput:
-        return ConceptExtractionOutput.model_validate(self._provider.extract_concepts(text))
+        return ConceptExtractionOutput.model_validate(self._call("extract_concepts", text))
 
     def generate_quiz_from_lecture(
         self,
@@ -39,7 +40,7 @@ class AIService:
         questions_per_concept: int,
     ) -> QuizGenerationOutput:
         return QuizGenerationOutput.model_validate(
-            self._provider.generate_quiz_from_lecture(text, concepts, questions_per_concept)
+            self._call("generate_quiz_from_lecture", text, concepts, questions_per_concept)
         )
 
     def explain_wrong_answer(
@@ -51,7 +52,7 @@ class AIService:
         lecture_summary: str,
     ) -> WrongAnswerExplanationOutput:
         return WrongAnswerExplanationOutput.model_validate(
-            self._provider.explain_wrong_answer(question, selected_answer, correct_answer, concept, lecture_summary)
+            self._call("explain_wrong_answer", question, selected_answer, correct_answer, concept, lecture_summary)
         )
 
     def generate_recommendation(
@@ -61,5 +62,21 @@ class AIService:
         mastery_data: list[dict],
     ) -> RecommendationOutput:
         return RecommendationOutput.model_validate(
-            self._provider.generate_recommendation(weak_concepts, prerequisite_chain, mastery_data)
+            self._call("generate_recommendation", weak_concepts, prerequisite_chain, mastery_data)
         )
+
+    def _call(self, method_name: str, *args):
+        if self._provider is None:
+            self._last_provider_name = self._fallback_provider.provider_name
+            self._used_fallback = True
+            return getattr(self._fallback_provider, method_name)(*args)
+
+        try:
+            result = getattr(self._provider, method_name)(*args)
+            self._last_provider_name = self._provider.provider_name
+            self._used_fallback = False
+            return result
+        except AIProviderError:
+            self._last_provider_name = self._fallback_provider.provider_name
+            self._used_fallback = True
+            return getattr(self._fallback_provider, method_name)(*args)

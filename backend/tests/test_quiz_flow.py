@@ -85,6 +85,8 @@ def test_wrong_answer_refreshes_mastery_and_orders_recommendations(client, demo_
     finish_response = client.post(f"/quiz-sessions/{session_id}/finish", headers=headers)
     assert finish_response.status_code == 200
     payload = finish_response.json()
+    assert payload["stars_awarded"] >= 1
+    assert payload["current_jar"]["earned_stars"] == payload["stars_awarded"]
     recommendation_titles = [item["title"].lower() for item in payload["recommendations"]]
     assert any("determinant" in title for title in recommendation_titles)
     determinant_index = next(i for i, title in enumerate(recommendation_titles) if "determinant" in title)

@@ -39,8 +39,7 @@ export default function UploadPage() {
   return (
     <div className="space-y-10">
       <section>
-        <p className="eyebrow">Upload</p>
-        <h1 className="mt-4 max-w-4xl text-[clamp(2.2rem,4.2vw,4.3rem)] font-medium leading-[0.94] tracking-[-0.07em] text-[var(--text-strong)]">
+        <h1 className="max-w-4xl text-[clamp(1.8rem,3.2vw,3rem)] font-medium leading-[0.98] tracking-[-0.05em] text-[var(--text-strong)]">
           Add a lecture.
         </h1>
       </section>

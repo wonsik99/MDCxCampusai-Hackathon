@@ -10,6 +10,7 @@ import {
   QuizSessionRead,
   QuizSessionStartResponse,
   RecommendationsResponse,
+  StarJarsResponse,
   SubmitAnswerResponse
 } from "@/lib/types";
 
@@ -144,4 +145,8 @@ export function getConceptMastery(userId: string) {
 
 export function getRecommendations(userId: string) {
   return apiFetch<RecommendationsResponse>(`/users/${userId}/recommendations`);
+}
+
+export function getStarJars(userId: string) {
+  return apiFetch<StarJarsResponse>(`/users/${userId}/star-jars`);
 }

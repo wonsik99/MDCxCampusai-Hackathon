@@ -23,6 +23,7 @@ from app.services.ai_service import AIService
 from app.services.analytics_service import AnalyticsService
 from app.services.lecture_service import LectureService
 from app.services.recommendation_service import RecommendationService
+from app.services.star_jar_service import StarJarService
 
 
 class QuizService:
@@ -34,6 +35,7 @@ class QuizService:
             session, analytics_service=self.analytics_service, ai_service=self.ai_service
         )
         self.lecture_service = LectureService(session, ai_service=self.ai_service)
+        self.star_jar_service = StarJarService(session)
 
     def start_session(self, user_id: UUID, lecture_id: UUID, question_limit: int | None) -> QuizSessionStartResponse:
         lecture = self.lecture_service.get_lecture(user_id, lecture_id)
@@ -211,6 +213,7 @@ class QuizService:
 
         quiz_session.status = QuizSessionStatus.COMPLETED
         quiz_session.finished_at = datetime.now(timezone.utc)
+        star_jar_update, current_jar = self.star_jar_service.award_session(quiz_session)
         self.session.commit()
         recommendations = self.recommendation_service.refresh_recommendations(
             user_id=user_id, lecture_id=quiz_session.lecture_id, source_session_id=quiz_session.id
@@ -225,5 +228,8 @@ class QuizService:
                 user_id, quiz_session.lecture_id, quiz_session.id
             ),
             weak_concepts=[item["concept_name"] for item in weak_concepts],
+            stars_awarded=star_jar_update.stars_awarded,
+            star_jar_update=star_jar_update,
+            current_jar=current_jar,
             recommendations=recommendations.recommendations,
         )

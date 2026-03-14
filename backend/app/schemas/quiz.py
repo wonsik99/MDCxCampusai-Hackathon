@@ -1,6 +1,6 @@
 """Quiz session request and response payloads."""
 
-from datetime import datetime
+from datetime import date, datetime
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -83,6 +83,14 @@ class SessionConceptPerformance(BaseModel):
     mastery_score: float
 
 
+class StarJarUpdateRead(BaseModel):
+    week_start_date: date
+    week_end_date: date
+    study_time_ms: int
+    accuracy_ratio: float
+    stars_awarded: int
+
+
 class FinishSessionResponse(BaseModel):
     session_id: UUID
     score: float
@@ -90,9 +98,12 @@ class FinishSessionResponse(BaseModel):
     total_questions: int
     concept_performance: list[SessionConceptPerformance]
     weak_concepts: list[str]
+    stars_awarded: int
+    star_jar_update: "StarJarUpdateRead"
+    current_jar: "StarJarRead"
     recommendations: list["RecommendationRead"]
 
 
-from app.schemas.user import RecommendationRead  # noqa: E402
+from app.schemas.user import RecommendationRead, StarJarRead  # noqa: E402
 
 FinishSessionResponse.model_rebuild()

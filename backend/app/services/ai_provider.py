@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from itertools import cycle
 
 from openai import OpenAI
 
@@ -14,7 +15,12 @@ from app.schemas.ai import (
     RecommendationOutput,
     WrongAnswerExplanationOutput,
     QuizGenerationOutput,
+    QuizQuestionOutput,
+    RecommendationMessageItem,
+    WrongAnswerExplanation,
 )
+from app.schemas.common import ChoiceRead
+from app.utils.text import extract_keyword_concepts, summarize_text_fallback
 
 logger = logging.getLogger(__name__)
 
@@ -141,3 +147,125 @@ def _trim_text_for_generation(text: str, max_chars: int) -> str:
     return (
         f"{head}\n\n[content truncated for quiz generation to keep the response structured and within limits]\n\n{tail}"
     )
+
+
+class FallbackAIProvider:
+    provider_name = "fallback"
+
+    def __init__(self, _: Settings) -> None:
+        pass
+
+    def summarize_lecture(self, text: str) -> LectureSummaryOutput:
+        concepts = extract_keyword_concepts(text, max_items=3)
+        takeaways = [
+            f"Focus on {concept['name']} when reviewing the lecture."
+            for concept in concepts
+        ]
+        if not takeaways:
+            takeaways = ["Review the core idea and then retry related quiz questions."]
+        return LectureSummaryOutput(summary=summarize_text_fallback(text), key_takeaways=takeaways[:5])
+
+    def extract_concepts(self, text: str) -> ConceptExtractionOutput:
+        return ConceptExtractionOutput.model_validate({"concepts": extract_keyword_concepts(text, max_items=4)})
+
+    def generate_quiz_from_lecture(
+        self,
+        text: str,
+        concepts: list[dict[str, str]],
+        questions_per_concept: int,
+    ) -> QuizGenerationOutput:
+        excerpt = summarize_text_fallback(text, limit=180)
+        questions: list[QuizQuestionOutput] = []
+        distractor_letters = ["A", "B", "C", "D"]
+        for concept in concepts:
+            other_names = [item["name"] for item in concepts if item["slug"] != concept["slug"]][:2]
+            for index in range(questions_per_concept):
+                prompt = (
+                    f"Which statement best reflects the lecture's treatment of {concept['name']}?"
+                    if index % 2 == 0
+                    else f"What is the most useful next study move for improving on {concept['name']}?"
+                )
+                correct_text = (
+                    concept.get("description")
+                    or f"Review how {concept['name']} is used in the lecture and connect it to the worked examples."
+                )
+                if index % 2 == 1:
+                    correct_text = (
+                        f"Revisit {concept['name']} in the lecture notes, then practice one related problem from the summary."
+                    )
+                distractors = [
+                    (
+                        f"Treat {concept['name']} as identical to {other_names[0]}."
+                        if other_names
+                        else f"Memorize the term {concept['name']} without checking how it is used."
+                    ),
+                    f"Skip {concept['name']} and move straight to harder topics without reviewing the lecture.",
+                    f"Ignore the lecture context and rely only on isolated definitions from outside sources.",
+                ]
+                choice_cycle = cycle(distractor_letters)
+                choices = [
+                    ChoiceRead(choice_id=next(choice_cycle), text=correct_text),
+                    *[ChoiceRead(choice_id=next(choice_cycle), text=text) for text in distractors],
+                ]
+                wrong_explanations = [
+                    WrongAnswerExplanation(
+                        choice_id=choice.choice_id,
+                        explanation=(
+                            f"This misses how the lecture framed {concept['name']}. Use the lecture summary first: {excerpt}"
+                        ),
+                    )
+                    for choice in choices
+                    if choice.choice_id != "A"
+                ]
+                questions.append(
+                    QuizQuestionOutput(
+                        concept_slug=concept["slug"],
+                        prompt=prompt,
+                        choices=choices,
+                        correct_choice_id="A",
+                        wrong_answer_explanations=wrong_explanations,
+                    )
+                )
+        return QuizGenerationOutput(questions=questions)
+
+    def explain_wrong_answer(
+        self,
+        question: str,
+        selected_answer: str,
+        correct_answer: str,
+        concept: str,
+        lecture_summary: str,
+    ) -> WrongAnswerExplanationOutput:
+        explanation = (
+            f"'{selected_answer}' does not match the lecture's framing of {concept}. "
+            f"The stronger answer is '{correct_answer}'. {lecture_summary[:180]}"
+        ).strip()
+        return WrongAnswerExplanationOutput(
+            explanation=explanation
+        )
+
+    def generate_recommendation(
+        self,
+        weak_concepts: list[dict],
+        prerequisite_chain: list[list[str]],
+        mastery_data: list[dict],
+    ) -> RecommendationOutput:
+        chain_lookup = {chain[-1]: chain for chain in prerequisite_chain if chain}
+        mastery_lookup = {item["concept_slug"]: item for item in mastery_data}
+        recommendations: list[RecommendationMessageItem] = []
+        for weak in weak_concepts:
+            chain = chain_lookup.get(weak["concept_slug"], [weak["concept_slug"]])
+            prerequisite_steps = " -> ".join(chain[:-1]) if len(chain) > 1 else None
+            mastery = mastery_lookup.get(weak["concept_slug"], {})
+            recommendations.append(
+                RecommendationMessageItem(
+                    concept_slug=weak["concept_slug"],
+                    title=f"Rebuild {weak['concept_name']}",
+                    message=(
+                        f"Study {weak['concept_name']} next. "
+                        f"{f'Start with {prerequisite_steps} before returning to it. ' if prerequisite_steps else ''}"
+                        f"Current mastery is {round((mastery.get('mastery_score') or 0) * 100)}%."
+                    ),
+                )
+            )
+        return RecommendationOutput(recommendations=recommendations)

@@ -1,5 +1,6 @@
-"""User-scoped analytics and recommendation payloads."""
+"""User-scoped analytics, recommendation, and motivation payloads."""
 
+from datetime import date
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -38,6 +39,26 @@ class RecommendationRead(BaseModel):
     message: str
 
 
+class StarJarRead(BaseModel):
+    jar_id: UUID
+    week_start_date: date
+    week_end_date: date
+    capacity_stars: int
+    earned_stars: int
+    fill_ratio: float
+    study_time_ms: int
+    sessions_count: int
+    average_accuracy: float
+    is_current: bool
+    is_complete: bool
+
+
 class RecommendationsResponse(BaseModel):
     user_id: UUID
     recommendations: list[RecommendationRead]
+
+
+class StarJarsResponse(BaseModel):
+    user_id: UUID
+    current_jar: StarJarRead | None = None
+    history: list[StarJarRead]

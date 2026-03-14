@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useUserContext } from "@/components/user-context";
+import { StarJarOverview } from "@/components/star-jar-overview";
 import { finishQuizSession, getQuizQuestions, getQuizSession, submitAnswer } from "@/lib/api";
 import {
   FinishSessionResponse,
@@ -99,7 +100,7 @@ export default function QuizPage() {
       <div className="space-y-10">
         <section>
           <p className="eyebrow">Session finished</p>
-          <h1 className="mt-4 max-w-4xl text-[clamp(2.2rem,4.2vw,4.3rem)] font-medium leading-[0.94] tracking-[-0.07em] text-[var(--text-strong)]">
+          <h1 className="mt-4 max-w-4xl text-[clamp(1.8rem,3.2vw,3rem)] font-medium leading-[0.98] tracking-[-0.05em] text-[var(--text-strong)]">
             {session.lecture_title}
           </h1>
           <div className="plain-strip mt-8 py-4">
@@ -121,31 +122,40 @@ export default function QuizPage() {
         </section>
 
         {summary ? (
-          <section className="grid gap-10 lg:grid-cols-[0.9fr,1.1fr]">
-            <section className="plain-section lg:pt-0 lg:border-t-0">
-              <p className="eyebrow">Weak concepts</p>
-              <div className="mt-6 flex flex-wrap gap-3">
-                {summary.weak_concepts.map((concept) => (
-                  <span className="badge-primary" key={concept}>
-                    {concept}
-                  </span>
-                ))}
-              </div>
-            </section>
+          <section className="grid gap-10 xl:grid-cols-[minmax(0,0.95fr),minmax(0,1.05fr)]">
+            <StarJarOverview
+              currentJar={summary.current_jar}
+              history={[summary.current_jar]}
+              rewardSummary={summary.star_jar_update}
+              showHistory={false}
+            />
 
-            <section className="plain-section lg:pt-0 lg:border-t-0">
-              <p className="eyebrow">Recommendations</p>
-              <div className="mt-6 divide-y divide-white/10">
-                {summary.recommendations.map((recommendation) => (
-                  <div className="py-4 first:pt-0 last:pb-0" key={recommendation.recommendation_id}>
-                    <p className="text-sm font-semibold text-[var(--text-strong)]">
-                      {recommendation.rank}. {recommendation.title}
-                    </p>
-                    <p className="plain-note mt-2">{recommendation.message}</p>
-                  </div>
-                ))}
-              </div>
-            </section>
+            <div className="space-y-10">
+              <section className="plain-section xl:pt-0 xl:border-t-0">
+                <p className="eyebrow">Weak concepts</p>
+                <div className="mt-6 flex flex-wrap gap-3">
+                  {summary.weak_concepts.map((concept) => (
+                    <span className="badge-primary" key={concept}>
+                      {concept}
+                    </span>
+                  ))}
+                </div>
+              </section>
+
+              <section className="plain-section xl:pt-0 xl:border-t-0">
+                <p className="eyebrow">Recommendations</p>
+                <div className="mt-6 divide-y divide-white/10">
+                  {summary.recommendations.map((recommendation) => (
+                    <div className="py-4 first:pt-0 last:pb-0" key={recommendation.recommendation_id}>
+                      <p className="text-sm font-semibold text-[var(--text-strong)]">
+                        {recommendation.rank}. {recommendation.title}
+                      </p>
+                      <p className="plain-note mt-2">{recommendation.message}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </div>
           </section>
         ) : null}
       </div>
@@ -167,7 +177,7 @@ export default function QuizPage() {
     <div className="space-y-10">
       <section>
         <p className="eyebrow">Quiz</p>
-        <h1 className="mt-4 max-w-4xl text-[clamp(2.2rem,4.2vw,4.3rem)] font-medium leading-[0.94] tracking-[-0.07em] text-[var(--text-strong)]">
+        <h1 className="mt-4 max-w-4xl text-[clamp(1.8rem,3.2vw,3rem)] font-medium leading-[0.98] tracking-[-0.05em] text-[var(--text-strong)]">
           {session.lecture_title}
         </h1>
         <div className="plain-strip mt-8 grid gap-0 md:grid-cols-3">

@@ -1,11 +1,10 @@
 """Quiz session state and ordered question payload for future Unity clients."""
 
-from datetime import datetime
+from datetime import date, datetime
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, Enum as SAEnum
-from sqlalchemy import ForeignKey, Integer, JSON
+from sqlalchemy import Date, DateTime, Enum as SAEnum, Float, ForeignKey, Integer, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -35,6 +34,10 @@ class QuizSession(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     current_index: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    study_time_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    accuracy_ratio: Mapped[float | None] = mapped_column(Float, nullable=True)
+    stars_awarded: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    star_jar_week_start: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
 
     user: Mapped["User"] = relationship(back_populates="quiz_sessions")
     lecture: Mapped["Lecture"] = relationship(back_populates="quiz_sessions")

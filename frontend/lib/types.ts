@@ -141,6 +141,28 @@ export type Recommendation = {
   message: string;
 };
 
+export type StarJar = {
+  jar_id: string;
+  week_start_date: string;
+  week_end_date: string;
+  capacity_stars: number;
+  earned_stars: number;
+  fill_ratio: number;
+  study_time_ms: number;
+  sessions_count: number;
+  average_accuracy: number;
+  is_current: boolean;
+  is_complete: boolean;
+};
+
+export type StarJarUpdate = {
+  week_start_date: string;
+  week_end_date: string;
+  study_time_ms: number;
+  accuracy_ratio: number;
+  stars_awarded: number;
+};
+
 export type FinishSessionResponse = {
   session_id: string;
   score: number;
@@ -148,6 +170,9 @@ export type FinishSessionResponse = {
   total_questions: number;
   concept_performance: ConceptPerformance[];
   weak_concepts: string[];
+  stars_awarded: number;
+  star_jar_update: StarJarUpdate;
+  current_jar: StarJar;
   recommendations: Recommendation[];
 };
 
@@ -167,4 +192,10 @@ export type ConceptMasteryRead = {
 export type RecommendationsResponse = {
   user_id: string;
   recommendations: Recommendation[];
+};
+
+export type StarJarsResponse = {
+  user_id: string;
+  current_jar: StarJar | null;
+  history: StarJar[];
 };

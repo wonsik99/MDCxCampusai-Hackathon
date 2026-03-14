@@ -102,7 +102,7 @@ export default function LectureDetailPage() {
     <div className="space-y-10">
       <section>
         <p className="eyebrow">Lecture</p>
-        <h1 className="mt-4 max-w-4xl text-[clamp(2.2rem,4.2vw,4.3rem)] font-medium leading-[0.94] tracking-[-0.07em] text-[var(--text-strong)]">
+        <h1 className="mt-4 max-w-4xl text-[clamp(1.8rem,3.2vw,3rem)] font-medium leading-[0.98] tracking-[-0.05em] text-[var(--text-strong)]">
           {lecture.title}
         </h1>
         <div className="mt-6 flex flex-wrap gap-3">
@@ -161,7 +161,7 @@ export default function LectureDetailPage() {
         <div className="flex flex-wrap gap-3">
           <button
             className="btn-primary"
-            disabled={working}
+            disabled={working || lecture.quiz_generated}
             onClick={handleGenerateQuiz}
             type="button"
           >
@@ -170,8 +170,6 @@ export default function LectureDetailPage() {
                 <span className="loading-inline-spinner" />
                 Generating...
               </span>
-            ) : lecture.quiz_generated ? (
-              "Regenerate quiz"
             ) : (
               "Generate quiz"
             )}
@@ -193,9 +191,11 @@ export default function LectureDetailPage() {
           </button>
         </div>
         {working ? <p className="loading-inline mt-3">{workingLabel}</p> : null}
-        {!lecture.quiz_generated ? (
+        {lecture.quiz_generated ? (
+          <p className="plain-note mt-3">Quiz is locked once generated. Start a session to continue.</p>
+        ) : (
           <p className="plain-note mt-3">Generate quiz first, then start a session immediately.</p>
-        ) : null}
+        )}
 
         {generationResult ? (
           <p className="plain-note mt-4">

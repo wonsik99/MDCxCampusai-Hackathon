@@ -30,6 +30,7 @@
 
 html {
   scroll-behavior: smooth;
+  font-size: 19px;
 }
 
 body {
@@ -502,5 +503,17 @@ select {
     border-top-color: var(--accent-warm);
     border-radius: 50%;
     animation: spinner-rotate 0.7s linear infinite;
+  }
+
+  .sidebar-scrollbar {
+    scrollbar-gutter: stable;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .sidebar-scrollbar::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
   }
 }

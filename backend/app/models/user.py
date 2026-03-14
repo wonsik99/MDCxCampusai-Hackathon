@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from app.models.question_attempt import QuestionAttempt
     from app.models.quiz_session import QuizSession
     from app.models.recommendation import Recommendation
+    from app.models.star_jar import StarJar
 
 
 class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -26,3 +27,4 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     attempts: Mapped[list["QuestionAttempt"]] = relationship(back_populates="user")
     concept_masteries: Mapped[list["ConceptMastery"]] = relationship(back_populates="user")
     recommendations: Mapped[list["Recommendation"]] = relationship(back_populates="user")
+    star_jars: Mapped[list["StarJar"]] = relationship(back_populates="user", cascade="all, delete-orphan")

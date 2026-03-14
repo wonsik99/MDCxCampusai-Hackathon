@@ -1,14 +1,16 @@
 "use client";
 
-// The shell keeps demo-user state, navigation, and Unity handoff context visible across the app.
+// The shell keeps demo-user state, navigation, and study momentum visible across the app.
 
 import Link from "next/link";
 import type { Route } from "next";
 import { usePathname } from "next/navigation";
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 
 import { LectureSidebar } from "@/components/lecture-sidebar";
 import { useUserContext } from "@/components/user-context";
+import { getStarJars } from "@/lib/api";
+import { StarJar } from "@/lib/types";
 
 const NAV_ITEMS = [
   { href: "/", label: "Home" },
@@ -36,10 +38,39 @@ function getPageMeta(pathname: string) {
   return { label: "Overview", title: "Adaptive study support for struggling learners" };
 }
 
+function formatWeekRange(start: string, end: string) {
+  const formatter = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
+  const [startYear, startMonth, startDay] = start.split("-").map(Number);
+  const [endYear, endMonth, endDay] = end.split("-").map(Number);
+  return `${formatter.format(new Date(startYear, startMonth - 1, startDay))} - ${formatter.format(
+    new Date(endYear, endMonth - 1, endDay)
+  )}`;
+}
+
+function formatStudyTime(ms: number) {
+  if (ms < 60_000) {
+    return `${Math.max(1, Math.round(ms / 1000))} sec`;
+  }
+  const minutes = ms / 60_000;
+  return `${minutes >= 10 ? Math.round(minutes) : minutes.toFixed(1)} min`;
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { selectedUser, users, setSelectedUserId, loading, error } = useUserContext();
   const pageMeta = getPageMeta(pathname);
+  const [currentJar, setCurrentJar] = useState<StarJar | null>(null);
+
+  useEffect(() => {
+    if (!selectedUser) {
+      setCurrentJar(null);
+      return;
+    }
+
+    void getStarJars(selectedUser.id)
+      .then((data) => setCurrentJar(data.current_jar))
+      .catch(() => setCurrentJar(null));
+  }, [selectedUser]);
 
   return (
     <div className="min-h-screen">
@@ -100,7 +131,65 @@ export function AppShell({ children }: { children: ReactNode }) {
       </header>
 
       <div className="mx-auto max-w-[1560px] px-4 pb-10 pt-[152px] xl:px-6 lg:pt-[110px]">
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr),300px]">
+        <div className="grid gap-6 xl:grid-cols-[300px,minmax(0,1fr)]">
+          <aside className="sidebar-scrollbar space-y-8 border-t border-white/[0.12] pt-6 xl:sticky xl:top-[106px] xl:max-h-[calc(100vh-130px)] xl:overflow-y-auto xl:border-r xl:border-t-0 xl:pr-6 xl:pt-0">
+            <section>
+              <LectureSidebar userId={selectedUser?.id ?? null} />
+            </section>
+
+            <section className="plain-section">
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <p className="eyebrow whitespace-nowrap">Weekly star jar</p>
+                  <h3 className="mt-3 text-xl font-medium tracking-[-0.05em] text-[var(--text-strong)]">
+                    {currentJar ? `${currentJar.earned_stars} / ${currentJar.capacity_stars} ⭐️` : "No stars yet"}
+                  </h3>
+                </div>
+                <Link className="btn-ghost" href="/dashboard">
+                  Dashboard
+                </Link>
+              </div>
+
+              {currentJar ? (
+                <div className="surface-muted mt-5 p-4">
+                  <p className="text-sm text-[var(--text-muted)]">
+                    {formatWeekRange(currentJar.week_start_date, currentJar.week_end_date)}
+                  </p>
+                  <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/[0.08]">
+                    <div
+                      className="h-full rounded-full bg-[linear-gradient(90deg,rgba(214,167,113,0.92),rgba(244,225,192,0.98))]"
+                      style={{ width: `${Math.max(currentJar.fill_ratio * 100, currentJar.earned_stars > 0 ? 10 : 0)}%` }}
+                    />
+                  </div>
+                  <div className="mt-4 grid gap-3 text-sm text-[var(--text-muted)]">
+                    <div className="flex items-center justify-between gap-3">
+                      <span>Fill</span>
+                      <span className="font-medium text-[var(--text-strong)]">
+                        {Math.round(currentJar.fill_ratio * 100)}%
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span>Quiz time</span>
+                      <span className="font-medium text-[var(--text-strong)]">
+                        {formatStudyTime(currentJar.study_time_ms)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span>Accuracy</span>
+                      <span className="font-medium text-[var(--text-strong)]">
+                        {Math.round(currentJar.average_accuracy * 100)}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="plain-note mt-3">
+                  Finish a quiz session to start filling this week&apos;s jar.
+                </p>
+              )}
+            </section>
+          </aside>
+
           <div className="space-y-8">
             <header className="border-b border-white/[0.12] pb-5">
               <div className="flex flex-wrap items-end justify-between gap-4">
@@ -116,17 +205,6 @@ export function AppShell({ children }: { children: ReactNode }) {
 
             <main>{children}</main>
           </div>
-
-          <aside className="space-y-8 border-t border-white/[0.12] pt-6 xl:sticky xl:top-[106px] xl:h-fit xl:border-l xl:border-t-0 xl:pl-6 xl:pt-0">
-            <section>
-              <LectureSidebar userId={selectedUser?.id ?? null} />
-            </section>
-
-            <section className="plain-section">
-              <p className="eyebrow">Unity integration</p>
-              <p className="plain-note mt-3">Web and Unity use the same quiz endpoints.</p>
-            </section>
-          </aside>
         </div>
       </div>
     </div>
