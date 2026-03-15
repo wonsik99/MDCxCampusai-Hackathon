@@ -1,131 +1,132 @@
-# StruggleSense MVP
+# StruggleSense (MDC x Campus AI Hackathon)
 
-StruggleSense is an AI-powered adaptive study support system for struggling learners. This MVP converts lecture materials into concept-tagged quiz content, tracks answer history, updates per-concept mastery, detects prerequisite-aware gaps, and returns ordered study recommendations.
+StruggleSense is an AI-powered adaptive study support system for struggling learners. It turns lecture materials into concept-tagged quizzes, tracks answers, updates per-concept mastery, detects prerequisite-aware gaps, and returns ordered study recommendations. A Unity WebGL game (e.g. meteorite quiz) can run in the browser and use the same backend APIs.
 
 ## Stack
 
-- Frontend: Next.js App Router, TypeScript, Tailwind CSS
-- Backend: FastAPI, Pydantic v2, SQLAlchemy 2.0, Alembic
-- Database: PostgreSQL-compatible SQLAlchemy schema, SQLite-friendly dev default
-- AI: Official OpenAI Python SDK with the Responses API and structured JSON validation
+- **Frontend**: Next.js (App Router), TypeScript, Tailwind CSS. Unity WebGL builds are served from `frontend/public/unity/`.
+- **Backend**: FastAPI, Pydantic v2, SQLAlchemy 2.0, Alembic.
+- **Database**: SQLAlchemy schema (SQLite by default; PostgreSQL-compatible).
+- **AI**: OpenAI Python SDK (Responses API, structured JSON). No fallback provider; `OPENAI_API_KEY` is required for summaries, concept extraction, and quiz generation.
 
 ## Repo layout
 
 ```text
 backend/
   app/
-    api/routes/
-    core/
-    db/
+    api/routes/     # lectures, quiz-sessions, users
+    core/           # config, dependencies, exceptions
+    db/             # session, seed
     models/
     schemas/
-    services/
+    services/       # lecture, quiz, analytics, recommendation, star_jar, ai
     utils/
   alembic/
 frontend/
-  app/
+  app/              # pages (upload, lectures, quiz, dashboard, recommendations, games)
   components/
-  lib/
-requirements.txt
+  lib/              # API client
+  public/
+    unity/          # WebGL build (index.html, Build/, TemplateData/)
+tools/              # e.g. unity_launcher_helper
 .env.example
+requirements.txt
 ```
 
-## Backend overview
+## Backend API overview
 
-- `POST /lectures/upload`: accepts raw text or a PDF, extracts and cleans text, stores the lecture, summarizes content, and extracts core concepts
-- `POST /lectures/{lecture_id}/generate-quiz`: generates concept-tagged multiple-choice questions and wrong-answer explanations
-- `POST /quiz-sessions/start`: creates a quiz session for the active student
-- `GET /quiz-sessions/{session_id}/questions`: returns safe question payloads without correct answers
-- `POST /quiz-sessions/{session_id}/submit-answer`: grades server-side, stores the attempt, updates mastery, and returns feedback
-- `POST /quiz-sessions/{session_id}/finish`: closes the session and refreshes recommendations
-- `GET /users/{user_id}/concept-mastery`: returns mastery analytics
-- `GET /users/{user_id}/recommendations`: returns ordered study recommendations
-- `GET /demo-users`: returns the seeded demo students used by the web app selector
+- **Lectures**
+  - `POST /lectures/upload` — Upload raw text or PDF; extract/clean text, store lecture, run AI summary and concept extraction.
+  - `POST /lectures/{lecture_id}/generate-quiz` — Generate concept-tagged multiple-choice questions and wrong-answer explanations (idempotent unless `force_regenerate=true`).
+- **Quiz sessions** (used by the web quiz and by Unity)
+  - `POST /quiz-sessions/start` — Start a session (body: `lecture_id`, optional `question_limit`).
+  - `GET /quiz-sessions/{session_id}` — Session status.
+  - `GET /quiz-sessions/{session_id}/questions` — Question payloads (no correct answers).
+  - `POST /quiz-sessions/{session_id}/submit-answer` — Submit one answer; server grades, stores attempt, updates mastery, returns feedback.
+  - `POST /quiz-sessions/{session_id}/finish` — Close session, award stars, refresh recommendations.
+- **Users & analytics**
+  - `GET /demo-users` — List seeded demo users (for web app user selector).
+  - `GET /users/{user_id}/concept-mastery` — Per-concept mastery.
+  - `GET /users/{user_id}/recommendations` — Ordered study recommendations.
+  - `GET /users/{user_id}/star-jars` — Weekly star-jar progress (motivation).
 
-Lecture and quiz routes expect `X-User-Id` so the current demo student is resolved in one place. A future auth layer can replace that resolver without changing route contracts.
+Lecture and quiz routes require the **`X-User-Id`** header (UUID of the current user). Demo users are seeded on startup.
 
-## OpenAI behavior
+## OpenAI
 
-- When `OPENAI_API_KEY` is present, the backend uses the official `openai` Python SDK and the Responses API to request structured JSON outputs for summaries, concept extraction, quiz generation, explanations, and recommendation wording.
-- All AI outputs are validated with Pydantic before persistence.
-- When `OPENAI_API_KEY` is missing, the app still runs with a deterministic fallback provider that generates heuristic summaries, concepts, quiz items, and recommendation copy. The API metadata reports whether fallback mode was used.
+- The backend uses the official `openai` Python SDK and the Responses API for structured JSON (summaries, concepts, quiz generation, wrong-answer explanations, recommendation wording).
+- All AI outputs are validated with Pydantic before use.
+- **`OPENAI_API_KEY`** must be set for upload and quiz generation. No fallback provider.
+- Optional env: `OPENAI_MODEL` (default `gpt-4.1-mini`), `OPENAI_TIMEOUT_SECONDS` (default 45).
 
 ## Prerequisite reasoning
 
-The MVP includes a seeded linear algebra dependency chain:
+A seeded linear algebra dependency chain is used so that if an extracted concept matches part of it, missing prerequisites can be inferred for mastery and recommendations:
 
 ```text
-matrix multiplication -> determinant -> eigenvalues -> eigenvectors
+matrix multiplication → determinant → eigenvalues → eigenvectors
 ```
-
-If an extracted concept matches part of that chain, StruggleSense automatically inserts missing prerequisites as inferred lecture concepts so mastery and recommendations can still reason about what the student needs first.
 
 ## Local setup
 
 ### 1. Backend
 
+From the repo root:
+
 ```bash
 python3 -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env
+cp .env.example .env        # Set OPENAI_API_KEY and optionally DATABASE_URL
 alembic -c backend/alembic.ini upgrade head
 uvicorn app.main:app --app-dir backend --reload
 ```
 
-The default `DATABASE_URL` uses SQLite for easy local startup. For PostgreSQL, replace it with your Postgres connection string and rerun the migration command.
+Default is SQLite (`sqlite:///./strugglesense.db`). For PostgreSQL, set `DATABASE_URL` and run the migration again.
 
 ### 2. Frontend
 
 ```bash
 cd frontend
 npm install
-cp ../.env.example .env.local
+cp ../.env.example .env.local   # Or set NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 npm run dev
 ```
 
-The frontend expects `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000`.
+Open [http://localhost:3000](http://localhost:3000). The app expects the API at `NEXT_PUBLIC_API_BASE_URL` (default `http://localhost:8000`).
 
 ## Running tests
 
-Backend:
-
-```bash
-pytest backend/tests
-```
-
-Frontend:
-
-```bash
-cd frontend
-npm test
-```
+- **Backend**: `pytest backend/tests` (from repo root).
+- **Frontend**: `cd frontend && npm test`.
 
 ## Web app pages
 
-- `/`: project overview and Unity handoff explanation
-- `/upload`: lecture upload and AI analysis
-- `/lectures/[lectureId]`: lecture summary, concepts, quiz generation, and quiz start
-- `/quiz/[sessionId]`: lightweight browser quiz runner over the same backend APIs Unity will call later
-- `/dashboard`: concept mastery and weak concept analytics
-- `/recommendations`: ordered study steps
+- `/` — Overview and current learner state.
+- `/upload` — Lecture upload and AI analysis.
+- `/lectures/[lectureId]` — Lecture summary, concepts, quiz generation, and links to start quiz or game.
+- `/quiz/[sessionId]` — Browser quiz runner (same APIs as Unity).
+- `/game/[lectureId]` — Entry point for game mode for a lecture.
+- `/games/meteorite` — Meteorite game (Unity WebGL) with `?lectureId=...`.
+- `/dashboard` — Concept mastery and weak-concept analytics.
+- `/recommendations` — Ordered study steps.
+- `/users/[userId]/star-jars` (or via dashboard) — Weekly star jars.
 
-## Unity integration point
+## Unity integration
 
-Unity is intentionally not implemented in this repo. It should connect to the backend by calling the same endpoints already used by the browser quiz:
-
-- `POST /quiz-sessions/start`
-- `GET /quiz-sessions/{session_id}`
-- `GET /quiz-sessions/{session_id}/questions`
-- `POST /quiz-sessions/{session_id}/submit-answer`
-- `POST /quiz-sessions/{session_id}/finish`
-- `GET /users/{user_id}/recommendations`
-
-Unity should send `X-User-Id` for demo mode today. Later, that header can be replaced by auth token resolution on the backend without changing the session payload shapes.
+- **WebGL build**: The built Unity game is placed under `frontend/public/unity/` (e.g. `index.html`, `Build/`, `TemplateData/`). The Next.js page `/games/meteorite` loads it in an iframe with `?lectureId=...`.
+- **Backend**: Unity should call the same quiz-session APIs as the web app:
+  - `POST /quiz-sessions/start`
+  - `GET /quiz-sessions/{session_id}/questions`
+  - `POST /quiz-sessions/{session_id}/submit-answer`
+  - `POST /quiz-sessions/{session_id}/finish`
+- Send **`X-User-Id`** (user UUID) on every request. No file upload; all communication is JSON over HTTP.
+- A detailed **Unity integration guide** (request/response shapes, flow) is in `docs/unity-integration-guide.md` if present.
 
 ## Notes
 
-- Server-side grading is enforced; correct answers never appear in question delivery endpoints.
-- Quiz generation is idempotent unless `force_regenerate=true`.
-- Recommendation order is deterministic and prerequisite-aware; the LLM only helps phrase the wording.
-- Demo users are seeded automatically on backend startup for SQLite development and via `backend/app/db/seed.py` for other environments.
+- **Server-side grading**: Correct answers are never exposed in question delivery; only submit-answer returns correctness and explanation.
+- **Quiz generation**: One-time per lecture unless `force_regenerate=true` (and no existing quiz sessions).
+- **Recommendations**: Order is deterministic and prerequisite-aware; the LLM helps phrase the wording.
+- **Star jars**: Completed quiz sessions award stars and update the weekly jar; see `GET /users/{user_id}/star-jars`.
+- **Demo users**: Seeded on backend startup via `backend/app/db/seed.py`.
