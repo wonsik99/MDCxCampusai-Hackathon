@@ -51,10 +51,25 @@
         updateBannerVisibility();
       }
 
+      var searchParams = new URLSearchParams(window.location.search);
+      var launchContext = {
+        lectureId: searchParams.get("lectureId") || "",
+        sessionId: searchParams.get("sessionId") || "",
+        userId: searchParams.get("userId") || "",
+        apiBaseUrl: searchParams.get("apiBaseUrl") || ""
+      };
+      var launchArguments = [];
+      Object.keys(launchContext).forEach(function(key) {
+        if (launchContext[key]) {
+          launchArguments.push("--" + key + "=" + launchContext[key]);
+        }
+      });
+      window.StruggleSenseUnityLaunchContext = launchContext;
+
       var buildUrl = "Build";
       var loaderUrl = buildUrl + "/Builds.loader.js";
       var config = {
-        arguments: [],
+        arguments: launchArguments,
         dataUrl: buildUrl + "/Builds.data",
         frameworkUrl: buildUrl + "/Builds.framework.js",
         codeUrl: buildUrl + "/Builds.wasm",
@@ -87,6 +102,10 @@
       // JS_FileSystem_Sync() behavior, but in future Unity version, this will be
       // expected to change.
 
+      if (!launchContext.sessionId) {
+        unityShowBanner("Shared session ID missing. Progress may not sync correctly.", "warning");
+      }
+
       if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
         // Mobile device style: fill the whole browser client area with the game canvas:
 
@@ -102,11 +121,11 @@
         // config.devicePixelRatio = 1;
 
 
-      } else {
-        // Desktop style: Render the game canvas in a window that can be maximized to fullscreen:
-        canvas.style.width = "960px";
-        canvas.style.height = "600px";
-      }
+	      } else {
+	        // Desktop style: Render the game canvas in a window that can be maximized to fullscreen:
+	        canvas.style.width = "100%";
+	        canvas.style.height = "100%";
+	      }
 
       document.querySelector("#unity-loading-bar").style.display = "block";
 
@@ -122,7 +141,9 @@
                 };
 
               }).catch((message) => {
-                alert(message);
+                document.querySelector("#unity-loading-bar").style.display = "none";
+                unityShowBanner("Unity failed to load. Confirm the WebGL build files are present and refresh the page.", "error");
+                console.error(message);
               });
             };
 

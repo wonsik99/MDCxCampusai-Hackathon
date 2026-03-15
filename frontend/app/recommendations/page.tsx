@@ -16,7 +16,7 @@ export default function RecommendationsPage() {
     if (!selectedUser) {
       return;
     }
-    void getRecommendations(selectedUser.id)
+    void getRecommendations(selectedUser.id, true)
       .then((data) => {
         setRecommendations(data.recommendations);
         setError(null);

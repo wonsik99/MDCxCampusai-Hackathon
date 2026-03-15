@@ -22,7 +22,13 @@ class RecommendationService:
         self.analytics_service = analytics_service or AnalyticsService(session)
         self.ai_service = ai_service or AIService()
 
-    def refresh_recommendations(self, user_id, lecture_id=None, source_session_id=None) -> RecommendationsResponse:
+    def refresh_recommendations(
+        self,
+        user_id,
+        lecture_id=None,
+        source_session_id=None,
+        include_ai_copy: bool = True,
+    ) -> RecommendationsResponse:
         weak_concepts = self.analytics_service.detect_weak_concepts(user_id, lecture_id)
         concepts = self.session.scalars(
             select(Concept)
@@ -45,7 +51,7 @@ class RecommendationService:
         ]
         ai_copy = (
             self.ai_service.generate_recommendation(weak_concepts, prerequisite_chains, mastery_data)
-            if weak_concepts
+            if weak_concepts and include_ai_copy
             else None
         )
         ai_messages = {item.concept_slug: item for item in (ai_copy.recommendations if ai_copy else [])}
@@ -96,7 +102,10 @@ class RecommendationService:
         ).unique().all()
         return RecommendationsResponse(user_id=user_id, recommendations=self._to_reads(stored))
 
-    def get_recommendations(self, user_id) -> RecommendationsResponse:
+    def get_recommendations(self, user_id, refresh_with_ai: bool = False) -> RecommendationsResponse:
+        if refresh_with_ai:
+            return self.refresh_recommendations(user_id, include_ai_copy=True)
+
         existing = self.session.scalars(
             select(Recommendation)
             .options(joinedload(Recommendation.lecture), joinedload(Recommendation.concept))

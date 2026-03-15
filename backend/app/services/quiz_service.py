@@ -216,7 +216,10 @@ class QuizService:
         star_jar_update, current_jar = self.star_jar_service.award_session(quiz_session)
         self.session.commit()
         recommendations = self.recommendation_service.refresh_recommendations(
-            user_id=user_id, lecture_id=quiz_session.lecture_id, source_session_id=quiz_session.id
+            user_id=user_id,
+            lecture_id=quiz_session.lecture_id,
+            source_session_id=quiz_session.id,
+            include_ai_copy=False,
         )
         weak_concepts = self.analytics_service.detect_weak_concepts(user_id, quiz_session.lecture_id)
         return FinishSessionResponse(

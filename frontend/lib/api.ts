@@ -14,7 +14,7 @@ import {
   SubmitAnswerResponse
 } from "@/lib/types";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
 type JsonBody = Record<string, unknown> | undefined;
 
@@ -143,8 +143,9 @@ export function getConceptMastery(userId: string) {
   return apiFetch<ConceptMasteryRead[]>(`/users/${userId}/concept-mastery`);
 }
 
-export function getRecommendations(userId: string) {
-  return apiFetch<RecommendationsResponse>(`/users/${userId}/recommendations`);
+export function getRecommendations(userId: string, refresh = false) {
+  const query = refresh ? "?refresh=true" : "";
+  return apiFetch<RecommendationsResponse>(`/users/${userId}/recommendations${query}`);
 }
 
 export function getStarJars(userId: string) {

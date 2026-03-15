@@ -33,12 +33,12 @@ def get_concept_mastery(user_id: UUID, session: Session = Depends(get_db)) -> li
 
 
 @router.get("/users/{user_id}/recommendations", response_model=RecommendationsResponse)
-def get_recommendations(user_id: UUID, session: Session = Depends(get_db)) -> RecommendationsResponse:
+def get_recommendations(user_id: UUID, refresh: bool = False, session: Session = Depends(get_db)) -> RecommendationsResponse:
     user = session.scalar(select(User).where(User.id == user_id))
     if not user:
         raise NotFoundError("User not found.")
     service = RecommendationService(session)
-    return service.get_recommendations(user_id)
+    return service.get_recommendations(user_id, refresh_with_ai=refresh)
 
 
 @router.get("/users/{user_id}/star-jars", response_model=StarJarsResponse)

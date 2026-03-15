@@ -97,6 +97,21 @@ export default function LectureDetailPage() {
     }
   }
 
+  async function handleStartGame() {
+    if (!selectedUser || !lecture) return;
+    setWorking(true);
+    setWorkingLabel("Launching game...");
+    try {
+      const session = await startQuizSession(selectedUser.id, lecture.id);
+      router.push(`/game/${lecture.id}?sessionId=${session.session_id}`);
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Unable to launch game.",
+      );
+      setWorking(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="text-sm text-[var(--text-muted)]">Loading lecture...</div>
@@ -111,8 +126,8 @@ export default function LectureDetailPage() {
 
   const workflowSteps = [
     { label: "Upload", done: true },
-    { label: "Generate Flashcards", done: lecture.quiz_generated },
-    { label: "Quiz or Game", done: false },
+    { label: "Generate learning content", done: lecture.quiz_generated },
+    { label: "Choose practice mode", done: false },
     { label: "Review recommendations", done: false },
   ];
 
@@ -244,7 +259,7 @@ export default function LectureDetailPage() {
                 <ul className="mt-6 space-y-3 text-base text-[var(--text-muted)]">
                   <li>• Multiple-choice questions</li>
                   <li>• Immediate correctness feedback</li>
-                  <li>• Supports mastery tracking</li>
+                  <li>• Starts a tracked adaptive session</li>
                 </ul>
                 <button
                   className="btn-primary mt-auto w-fit px-8 py-4 text-base"
@@ -273,19 +288,25 @@ export default function LectureDetailPage() {
                   a more motivating experience.
                 </p>
                 <ul className="mt-6 space-y-3 text-base text-[var(--text-muted)]">
-                  <li>• Same concepts, different experience</li>
-                  <li>• More playful and immersive</li>
-                  <li>• Good for reinforcement and retention</li>
+                  <li>• Uses the same tracked practice session</li>
+                  <li>• Launches the Unity WebGL game for this lecture</li>
+                  <li>• Returns to the same shared review flow</li>
                 </ul>
-                <Link
+                <button
                   className="btn-secondary mt-auto w-fit px-8 py-4 text-base"
-                  href={{
-                    pathname: "/games/meteorite",
-                    query: { lectureId: lecture.id },
-                  }}
+                  disabled={working}
+                  onClick={handleStartGame}
+                  type="button"
                 >
-                  Play game
-                </Link>
+                  {working && workingLabel === "Launching game..." ? (
+                    <span className="inline-flex items-center gap-2">
+                      <span className="loading-inline-spinner" />
+                      Launching...
+                    </span>
+                  ) : (
+                    "Play game"
+                  )}
+                </button>
               </div>
             </div>
           </div>

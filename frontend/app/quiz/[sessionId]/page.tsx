@@ -80,8 +80,16 @@ export default function QuizPage() {
     try {
       const result = await finishQuizSession(selectedUser.id, params.sessionId);
       setFinishResult(result);
-      const refreshed = await getQuizSession(selectedUser.id, params.sessionId);
-      setSession(refreshed);
+      setSession((current) =>
+        current
+          ? {
+              ...current,
+              status: "completed",
+              finished_at: new Date().toISOString(),
+              correct_answers: result.correct_answers
+            }
+          : current
+      );
       setError(null);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to finish session.");
